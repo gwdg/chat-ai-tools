@@ -7,6 +7,16 @@ import path from "node:path";
 
 const root = path.resolve(process.cwd());
 const port = Number(process.env.PORT || 8080);
+const requestedHost = String(process.env.HOST || "127.0.0.1").trim();
+const host = requestedHost === "localhost" ? "127.0.0.1" : requestedHost;
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1"]);
+
+if (!LOOPBACK_HOSTS.has(host)) {
+  console.error(
+    `Refusing to listen on ${host}. The development server only binds to localhost (127.0.0.1 or ::1).`,
+  );
+  process.exit(1);
+}
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -79,7 +89,8 @@ const server = http.createServer((req, res) => {
   console.log(`${req.method} ${url.pathname} -> 200`);
 });
 
-server.listen(port, () => {
+server.listen(port, host, () => {
+  const displayHost = host.includes(":") ? `[${host}]` : host;
   console.log(`Serving ${root}`);
-  console.log(`Open http://localhost:${port}/examples/embedded-chatbot/`);
+  console.log(`Open http://${displayHost}:${port}/examples/embedded-chatbot/`);
 });

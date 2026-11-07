@@ -7,9 +7,17 @@
   "scripts": {
     "dev": "node scripts/serve.mjs",
     "proxy": "node examples/proxy/server.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "mcp:folder": "node tools/local-folder-mcp/server.mjs --http",
+    "mcp:folder:http": "node tools/local-folder-mcp/server.mjs --http",
+    "mcp:folder:stdio": "node tools/local-folder-mcp/server.mjs",
+    "build:windows": "node build/windows/build-sea.mjs"
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "postject": "^1.0.0-alpha.6"
   }
 }

@@ -1,5 +1,6 @@
 secrets/*
 !secrets/back.json.example
 node_modules/
+build/windows/out/
 *.log
 .DS_Store

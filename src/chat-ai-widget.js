@@ -7,7 +7,7 @@
 //     const widget = document.querySelector("chat-ai-widget");
 //     await customElements.whenDefined("chat-ai-widget");
 //     widget.configure({
-//       endpoint: "http://localhost:8081",
+//       endpoint: "http://127.0.0.1:8081",
 //       model: "qwen3-30b-a3b-instruct-2507",
 //       systemPrompt: "You are a helpful assistant.",
 //     });
@@ -16,7 +16,7 @@
 import { ChatAIClient } from "./chat-ai-client.js";
 
 const DEFAULTS = {
-  endpoint: "http://localhost:8081",
+  endpoint: "http://127.0.0.1:8081",
   model: "",
   systemPrompt: "",
   aiDisclosure:

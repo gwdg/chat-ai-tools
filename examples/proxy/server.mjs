@@ -32,7 +32,30 @@ const apiKey = String(config.apiKey || "").trim();
 const serviceName = String(config.serviceName || "Chat AI Tools");
 const model = String(config.model || "").trim();
 const port = Number(process.env.PORT || config.port || 8081);
-const corsOrigin = process.env.CORS_ORIGIN || config.corsOrigin || "*";
+const requestedHost = String(process.env.HOST || config.host || "127.0.0.1").trim();
+const host = requestedHost === "localhost" ? "127.0.0.1" : requestedHost;
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1"]);
+const configuredCorsOrigins = String(
+  process.env.CORS_ORIGIN || config.corsOrigin || "",
+)
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+
+if (!LOOPBACK_HOSTS.has(host)) {
+  console.error(
+    `Refusing to listen on ${host}. This proxy only binds to localhost (127.0.0.1 or ::1).`,
+  );
+  console.error(
+    "Use a reverse proxy with authentication if you need remote access.",
+  );
+  process.exit(1);
+}
+if (configuredCorsOrigins.includes("*")) {
+  console.warn(
+    "Warning: CORS_ORIGIN=* allows every website to call this local proxy.",
+  );
+}
 
 if (!apiEndpoint) {
   console.error("back.json needs an apiEndpoint, e.g. https://chat-ai.academiccloud.de/v1");
@@ -49,8 +72,31 @@ if (!model) {
 
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
 
-function setCors(res) {
-  res.setHeader("Access-Control-Allow-Origin", corsOrigin);
+function isAllowedOrigin(origin) {
+  if (!origin) return false;
+  if (configuredCorsOrigins.includes("*")) return true;
+  if (configuredCorsOrigins.length) {
+    return configuredCorsOrigins.includes(origin);
+  }
+
+  try {
+    const { hostname } = new URL(origin);
+    return ["127.0.0.1", "localhost", "[::1]"].includes(hostname);
+  } catch {
+    return false;
+  }
+}
+
+function setCors(req, res) {
+  const origin = req.headers.origin;
+  if (isAllowedOrigin(origin)) {
+    res.setHeader(
+      "Access-Control-Allow-Origin",
+      configuredCorsOrigins.includes("*") ? "*" : origin,
+    );
+    res.setHeader("Vary", "Origin");
+  }
+
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept");
   res.setHeader("Access-Control-Max-Age", "600");
@@ -118,7 +164,7 @@ async function forward(req, res, target, body) {
 
 const server = http.createServer(async (req, res) => {
   const startedAt = Date.now();
-  setCors(res);
+  setCors(req, res);
 
   if (req.method === "OPTIONS") {
     res.writeHead(204);
@@ -169,9 +215,15 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(port, () => {
-  console.log(`Chat AI proxy listening on http://localhost:${port}`);
+server.listen(port, host, () => {
+  const displayHost = host.includes(":") ? `[${host}]` : host;
+  console.log(`Chat AI proxy listening on http://${displayHost}:${port}`);
   console.log(`Forwarding to ${apiEndpoint}`);
   console.log(`Model: ${model}`);
   console.log("Prompt, sampling, and limits: enforced by back.json");
+  console.log(
+    configuredCorsOrigins.length
+      ? `CORS origins: ${configuredCorsOrigins.join(", ")}`
+      : "CORS origins: localhost/127.0.0.1 only",
+  );
 });
