@@ -1,0 +1,15 @@
+{
+  "name": "chat-ai-tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Reusable tools and examples for Chat AI and SAIA",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "proxy": "node examples/proxy/server.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
