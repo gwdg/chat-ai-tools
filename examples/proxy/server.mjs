@@ -12,7 +12,7 @@ import http from "node:http";
 import path from "node:path";
 import { Readable } from "node:stream";
 
-import { applyBackendModel } from "./model-override.mjs";
+import { prepareChatRequest } from "./request-policy.mjs";
 
 const configPath = process.env.CONFIG_LOCATION
   ? path.resolve(process.env.CONFIG_LOCATION)
@@ -40,6 +40,10 @@ if (!apiEndpoint) {
 }
 if (!apiKey) {
   console.error("back.json needs an apiKey");
+  process.exit(1);
+}
+if (!model) {
+  console.error("back.json needs a model; the proxy does not accept a client model");
   process.exit(1);
 }
 
@@ -142,9 +146,9 @@ const server = http.createServer(async (req, res) => {
       const rawBody = await readBody(req);
       let body;
       try {
-        body = applyBackendModel(rawBody, model);
+        body = prepareChatRequest(rawBody, config);
       } catch (error) {
-        json(res, 400, { error: error.message });
+        json(res, error.status || 400, { error: error.message });
         return;
       }
       await forward(req, res, `${apiEndpoint}/chat/completions`, body);
@@ -168,5 +172,6 @@ const server = http.createServer(async (req, res) => {
 server.listen(port, () => {
   console.log(`Chat AI proxy listening on http://localhost:${port}`);
   console.log(`Forwarding to ${apiEndpoint}`);
-  console.log(`Model: ${model || "(from request)"}`);
+  console.log(`Model: ${model}`);
+  console.log("Prompt, sampling, and limits: enforced by back.json");
 });

@@ -14,6 +14,7 @@ configuration without copying the whole Chat AI front end.
 | `src/chat-ai-client.js` | Framework-agnostic OpenAI-compatible client with streaming and non-streaming calls |
 | `src/chat-ai-widget.js` | `<chat-ai-widget>` custom element: a small embeddable chat UI |
 | `examples/embedded-chatbot/` | Example webpage with a predefined SAIA assistant configuration |
+| `examples/popup-chatbot/` | Same widget in popup/launcher mode |
 | `examples/proxy/server.mjs` | Minimal Node proxy that keeps the SAIA API key on the server |
 | `assets/eu-ai-icons/` | Official EU “fully AI-generated” badge, black and white variants |
 | `scripts/serve.mjs` | Static server for local development |
@@ -44,9 +45,10 @@ browsers; Node code requires Node.js 18 or newer.
    npm run dev
    ```
 
-4. Open the example:
+4. Open an example:
 
-   <http://localhost:8080/examples/embedded-chatbot/>
+   - Embedded: <http://localhost:8080/examples/embedded-chatbot/>
+   - Popup: <http://localhost:8080/examples/popup-chatbot/>
 
 The API key stays in `secrets/back.json`; it is never sent to the browser.
 
@@ -69,10 +71,8 @@ export const chatConfig = {
   // Fallback for a plain Chat AI back service; the proxy overrides it when
   // secrets/back.json contains a model.
   model: "qwen3-30b-a3b-instruct-2507",
-  systemPrompt: "You are a helpful assistant embedded on a university webpage…",
-  temperature: 0.4,
-  topP: 0.8,
-  maxTokens: 1200,
+  // The proxy enforces the system prompt, sampling values, and limits from
+  // secrets/back.json.
   title: "SAIA Assistant",
   aiDisclosure:
     "You are chatting with an AI assistant. Responses are generated automatically and may be inaccurate.",
@@ -84,9 +84,8 @@ export const chatConfig = {
 };
 ```
 
-The SAIA endpoint and the model are configured in `secrets/back.json`. When a
-`model` is present there, the proxy replaces the model sent by the page, so the
-backend stays in control:
+The SAIA endpoint, model, system prompt, sampling values, and limits are
+configured in `secrets/back.json`:
 
 ```json
 {
@@ -94,9 +93,30 @@ backend stays in control:
   "apiEndpoint": "https://chat-ai.academiccloud.de/v1",
   "apiKey": "<your SAIA API key>",
   "model": "qwen3-30b-a3b-instruct-2507",
+  "systemPrompt": "You are a helpful assistant embedded on a university webpage…",
+  "temperature": 0.4,
+  "topP": 0.8,
+  "maxTokens": 1200,
+  "maxMessages": 40,
+  "maxInputChars": 30000,
   "serviceName": "Chat AI Tools"
 }
 ```
+
+### Backend-enforced request policy
+
+The proxy builds the final chat request itself. It:
+
+- drops every client `system`, `developer`, and `tool` message,
+- keeps only `user` and `assistant` text messages,
+- prepends the `systemPrompt` from `back.json`,
+- pins `model`, `temperature`, `top_p`, and `max_tokens` from `back.json`,
+- drops tools and unknown request fields,
+- keeps at most `maxMessages` messages and rejects input above `maxInputChars`.
+
+Client-side widget settings are UX defaults only. A user can still edit them in
+the browser, but the proxy ignores them. To change the assistant’s prompt or
+sampling behaviour, edit `secrets/back.json` and restart the proxy.
 
 ### Using an existing Chat AI back service
 
@@ -107,10 +127,15 @@ point the widget at it:
 endpoint: "http://localhost:8081"
 ```
 
+This bypasses the backend-enforced prompt and sampling policy of this
+repository’s proxy. The Chat AI back service forwards the client request; it
+does not enforce a server-side system prompt. Use the included proxy when the
+prompt must not be changeable by the user.
+
 The client appends `/chat/completions` and `/models`, which match the Chat AI
 back service routes. The proxy in this repository supports the same routes and
-also the `/v1/...` aliases. When the proxy has a `model` in `back.json`, it
-overrides the model sent by the page, so the backend stays in control.
+also the `/v1/...` aliases. It enforces the model, system prompt, sampling
+values, and limits from `back.json`; see the request policy above.
 
 If port `8081` is already taken by the Chat AI back service, either use that
 service directly (as above) or start this proxy on another port, for example:
@@ -145,6 +170,7 @@ The widget provides:
 - an AI disclosure above the conversation,
 - the official EU “fully AI-generated” badge next to the assistant title (black/white for light/dark mode),
 - a **Data privacy** link next to the badge that opens the full statement in an in-widget dialog,
+- optional popup mode with a fixed chat icon that opens and minimizes the panel,
 - streaming responses,
 - a stop button,
 - a “New chat” button,
@@ -158,10 +184,10 @@ The widget provides:
 |---|---|---|
 | `endpoint` | `http://localhost:8081` | Base URL of the proxy or OpenAI-compatible endpoint |
 | `model` | `""` | Model id. Leave empty when the proxy supplies it; the example sets a fallback. |
-| `systemPrompt` | `You are a helpful assistant.` | System message |
-| `temperature` | `0.5` | Sampling temperature |
-| `topP` | `0.8` | Nucleus sampling |
-| `maxTokens` | `1024` | Maximum completion tokens |
+| `systemPrompt` | `""` | Optional client-side system message for direct mode; the included proxy ignores it and uses `back.json`. |
+| `temperature` | `0.5` | Sampling temperature for direct mode; the included proxy pins it from `back.json`. |
+| `topP` | `0.8` | Nucleus sampling for direct mode; the included proxy pins it from `back.json`. |
+| `maxTokens` | `1024` | Maximum completion tokens for direct mode; the included proxy pins it from `back.json`. |
 | `token` | `""` | Optional bearer token for direct mode. Prefer the proxy. |
 | `serviceName` | `""` | Optional `inference-portal` header value |
 | `title` | `SAIA Assistant` | Widget header text |
@@ -172,6 +198,7 @@ The widget provides:
 | `welcome` | `Hello! How can I help you today?` | Intro text shown before the first message |
 | `placeholder` | `Type your message…` | Composer placeholder |
 | `height` | `32rem` | Widget height |
+| `popup` | `false` | Render as a fixed chat icon that opens/minimizes the widget panel |
 
 String settings can also be passed as kebab-case attributes:
 
@@ -185,11 +212,29 @@ String settings can also be passed as kebab-case attributes:
 ```
 
 Sampling values (`temperature`, `topP`, `maxTokens`) and `token` are best set
-with `configure()`. The AI disclosure is rendered above the conversation. A
+with `configure()`. When using the included proxy, the model, system prompt,
+sampling values, and limits are enforced from `secrets/back.json` and the client
+values are ignored. The AI disclosure is rendered above the conversation. A
 **Data privacy** link next to the EU AI-generated badge opens the full statement
 in a dialog inside the widget. If a configured value is empty, the built-in
 default is used, so the notice is never silently removed. The dialog renders
 `privacyDetails` as plain text, never as HTML.
+
+## Popup mode
+
+Set `popup: true` with `configure()`, or use the boolean attribute:
+
+```html
+<chat-ai-widget popup endpoint="http://localhost:8081"></chat-ai-widget>
+```
+
+In popup mode the widget renders a fixed chat icon in the bottom-right corner.
+Clicking the icon opens the panel; clicking it again minimizes the panel back to
+the icon. The conversation stays in memory while minimized. The launcher has an
+accessible label and `aria-expanded`, and the panel keeps the AI disclosure, EU
+badge, and Data privacy link.
+
+See `examples/popup-chatbot/` for a complete page.
 
 ## AI-generated content badge
 

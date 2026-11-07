@@ -18,7 +18,7 @@ import { ChatAIClient } from "./chat-ai-client.js";
 const DEFAULTS = {
   endpoint: "http://localhost:8081",
   model: "",
-  systemPrompt: "You are a helpful assistant.",
+  systemPrompt: "",
   aiDisclosure:
     "You are chatting with an AI assistant. Responses are generated automatically and may be inaccurate.",
   aiIconAlt: "AI-generated content",
@@ -34,6 +34,7 @@ const DEFAULTS = {
   welcome: "Hello! How can I help you today?",
   placeholder: "Type your message…",
   height: "32rem",
+  popup: false,
 };
 
 const ATTRIBUTE_KEYS = {
@@ -337,52 +338,144 @@ const STYLES = `
     color: var(--chat-muted);
     font-size: 0.78rem;
   }
+
+  .shell {
+    display: block;
+  }
+
+  .launcher {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--chat-accent);
+    color: var(--chat-accent-contrast);
+    box-shadow: 0 10px 30px rgb(0 0 0 / 25%);
+    cursor: pointer;
+    z-index: 10001;
+  }
+
+  .shell.popup .launcher {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    display: inline-flex;
+  }
+
+  .launcher:focus-visible {
+    outline: 3px solid var(--chat-bg);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 5px var(--chat-accent);
+  }
+
+  .launcher svg {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .launcher-close {
+    display: none;
+  }
+
+  .launcher[data-open="true"] .launcher-open {
+    display: none;
+  }
+
+  .launcher[data-open="true"] .launcher-close {
+    display: block;
+  }
+
+  .shell.popup .widget {
+    position: fixed;
+    right: 1rem;
+    bottom: 5rem;
+    width: min(24rem, calc(100vw - 2rem));
+    height: min(var(--chat-height, 32rem), calc(100vh - 7rem));
+    z-index: 10000;
+    box-shadow: 0 20px 60px rgb(0 0 0 / 25%);
+  }
+
+  .shell.popup .widget[hidden] {
+    display: none;
+  }
+
 `;
 
 const TEMPLATE = `
-  <section class="widget">
-    <header class="header">
-      <div class="header-title">
-        <h2 class="title">SAIA Assistant</h2>
-        <img class="ai-icon ai-icon-light" alt="" />
-        <img class="ai-icon ai-icon-dark" alt="" />
-        <button
-          type="button"
-          class="privacy-link"
-          aria-haspopup="dialog"
-          aria-controls="privacy-dialog"
-        ></button>
-      </div>
-      <button type="button" class="reset" title="Start a new conversation">New chat</button>
-    </header>
-    <aside class="notice" role="note">
-      <p class="notice-ai"></p>
-    </aside>
-    <div class="welcome"></div>
-    <ol class="messages" aria-live="polite"></ol>
-    <form class="composer">
-      <textarea rows="1" aria-label="Message"></textarea>
-      <button type="submit" class="send">Send</button>
-      <button type="button" class="stop" hidden>Stop</button>
-    </form>
-    <p class="status" role="status"></p>
-    <dialog
-      class="privacy-dialog"
-      id="privacy-dialog"
-      aria-labelledby="privacy-dialog-title"
+  <div class="shell">
+    <section class="widget" id="chat-widget-panel">
+      <header class="header">
+        <div class="header-title">
+          <h2 class="title">SAIA Assistant</h2>
+          <img class="ai-icon ai-icon-light" alt="" />
+          <img class="ai-icon ai-icon-dark" alt="" />
+          <button
+            type="button"
+            class="privacy-link"
+            aria-haspopup="dialog"
+            aria-controls="privacy-dialog"
+          ></button>
+        </div>
+        <button type="button" class="reset" title="Start a new conversation">New chat</button>
+      </header>
+      <aside class="notice" role="note">
+        <p class="notice-ai"></p>
+      </aside>
+      <div class="welcome"></div>
+      <ol class="messages" aria-live="polite"></ol>
+      <form class="composer">
+        <textarea rows="1" aria-label="Message"></textarea>
+        <button type="submit" class="send">Send</button>
+        <button type="button" class="stop" hidden>Stop</button>
+      </form>
+      <p class="status" role="status"></p>
+      <dialog
+        class="privacy-dialog"
+        id="privacy-dialog"
+        aria-labelledby="privacy-dialog-title"
+      >
+        <h3 class="privacy-dialog-title" id="privacy-dialog-title"></h3>
+        <div class="privacy-dialog-body"></div>
+        <div class="privacy-dialog-actions">
+          <button type="button" class="privacy-close">Close</button>
+        </div>
+      </dialog>
+    </section>
+    <button
+      type="button"
+      class="launcher"
+      aria-label="Open chat"
+      aria-expanded="false"
+      aria-controls="chat-widget-panel"
+      title="Open chat"
     >
-      <h3 class="privacy-dialog-title" id="privacy-dialog-title"></h3>
-      <div class="privacy-dialog-body"></div>
-      <div class="privacy-dialog-actions">
-        <button type="button" class="privacy-close">Close</button>
-      </div>
-    </dialog>
-  </section>
+      <svg class="launcher-open" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path
+          d="M4 3h16a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"
+          fill="currentColor"
+        />
+      </svg>
+      <svg class="launcher-close" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path
+          d="M6 9l6 6 6-6"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+  </div>
 `;
 
 export class ChatAIWidget extends HTMLElement {
   static get observedAttributes() {
-    return Object.keys(ATTRIBUTE_KEYS);
+    return [...Object.keys(ATTRIBUTE_KEYS), "popup"];
   }
 
   constructor() {
@@ -392,6 +485,7 @@ export class ChatAIWidget extends HTMLElement {
     this._messages = [];
     this._controller = null;
     this._streaming = false;
+    this._popupOpen = false;
     this._generation = 0;
     this._build();
   }
@@ -405,8 +499,9 @@ export class ChatAIWidget extends HTMLElement {
     this._abort();
   }
 
-  attributeChangedCallback(_name, oldValue, newValue) {
+  attributeChangedCallback(name, oldValue, newValue) {
     if (oldValue === newValue || !this.isConnected) return;
+    if (name === "popup" && newValue === null) this._config.popup = false;
     this._applyAttributes();
     this._reset();
   }
@@ -439,20 +534,28 @@ export class ChatAIWidget extends HTMLElement {
       const value = this.getAttribute(attribute);
       if (value !== null) this._config[key] = value;
     }
+
+    if (this.hasAttribute("popup")) {
+      this._config.popup = this.getAttribute("popup") !== "false";
+    }
   }
 
   _build() {
     const style = document.createElement("style");
     style.textContent = STYLES;
 
-    const wrapper = document.createElement("section");
-    wrapper.className = "widget";
-    wrapper.innerHTML = TEMPLATE;
+    const container = document.createElement("div");
+    container.innerHTML = TEMPLATE;
+    const shell = container.firstElementChild;
+    const wrapper = shell.querySelector(".widget");
+    const launcher = shell.querySelector(".launcher");
 
-    this.shadowRoot.append(style, wrapper);
+    this.shadowRoot.append(style, shell);
 
     this._el = {
+      shell,
       widget: wrapper,
+      launcher,
       title: wrapper.querySelector(".title"),
       noticeAi: wrapper.querySelector(".notice-ai"),
       privacyLink: wrapper.querySelector(".privacy-link"),
@@ -486,6 +589,7 @@ export class ChatAIWidget extends HTMLElement {
     this._el.privacyDialog.addEventListener("click", (event) => {
       if (event.target === this._el.privacyDialog) this._closePrivacyDialog();
     });
+    this._el.launcher.addEventListener("click", () => this._togglePopup());
 
     this._el.form.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -531,6 +635,39 @@ export class ChatAIWidget extends HTMLElement {
     this._el.status.textContent = "";
     this._el.widget.style.setProperty("--chat-height", this._config.height);
     this._autosize();
+    this._applyPopupMode();
+  }
+
+  _applyPopupMode() {
+    const popup = Boolean(this._config.popup);
+    this._el.shell.classList.toggle("popup", popup);
+    if (!popup) this._popupOpen = false;
+
+    this._el.launcher.hidden = !popup;
+    this._el.widget.hidden = popup && !this._popupOpen;
+    this._updateLauncher();
+  }
+
+  _updateLauncher() {
+    if (!this._config.popup) return;
+
+    const open = this._popupOpen;
+    this._el.launcher.dataset.open = open ? "true" : "false";
+    this._el.launcher.setAttribute("aria-expanded", String(open));
+
+    const label = `${open ? "Minimize" : "Open"} ${this._config.title}`;
+    this._el.launcher.setAttribute("aria-label", label);
+    this._el.launcher.title = label;
+  }
+
+  _togglePopup() {
+    if (!this._config.popup) return;
+
+    this._popupOpen = !this._popupOpen;
+    if (!this._popupOpen) this._closePrivacyDialog();
+    this._applyPopupMode();
+
+    if (this._popupOpen) this._el.input.focus();
   }
 
   _appendMessage(role, text) {
@@ -650,7 +787,7 @@ export class ChatAIWidget extends HTMLElement {
     } finally {
       this._controller = null;
       this._setStreaming(false);
-      this._el.input.focus();
+      if (!this._config.popup || this._popupOpen) this._el.input.focus();
     }
   }
 

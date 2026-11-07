@@ -26,9 +26,10 @@ chat-ai-tools/
 │   └── chat-ai-widget.js      <chat-ai-widget> custom element
 ├── examples/
 │   ├── embedded-chatbot/      Example page + predefined configuration
+│   ├── popup-chatbot/         Popup/launcher example
 │   └── proxy/
 │       ├── server.mjs         Minimal server-side proxy for Chat AI / SAIA
-│       └── model-override.mjs Applies the backend-configured model
+│       └── request-policy.mjs Builds the backend-enforced chat request
 ├── assets/eu-ai-icons/        Official EU fully AI-generated badge (black/white)
 ├── scripts/serve.mjs          Static server for local development
 ├── tests/                     node:test suites
@@ -47,11 +48,12 @@ Recommended flow for a public webpage:
 browser page → <chat-ai-widget> → local/deployed proxy → SAIA
 ```
 
-- The widget talks to an OpenAI-compatible endpoint.
+- The widget talks to an OpenAI-compatible endpoint and can render inline or as a
+  fixed popup launcher.
 - The proxy holds the long-lived SAIA API key and forwards only the model list
   and chat completion requests.
-- The proxy can set the model centrally from `secrets/back.json`; it overrides a
-  model sent by the browser.
+- The proxy builds the final request from `secrets/back.json`: model, system
+  prompt, sampling values, and limits. A client cannot override them.
 - The browser never receives the API key.
 
 Direct browser-to-SAIA calls are possible with a short-lived user token, but
@@ -81,11 +83,20 @@ Request fields used by the client:
 }
 ```
 
-`model` is optional in the client. If the widget has no model configured, the
-request omits it and the proxy supplies the model from `back.json`. The example
-page sets a fallback model so it also works against a plain Chat AI back service.
-The proxy must keep overriding the client model when a backend model is
-configured; do not let a webpage select arbitrary models.
+The client may send its own model, system prompt, sampling values, and tools, but
+the included proxy ignores them. `prepareChatRequest()` in
+`examples/proxy/request-policy.mjs` rebuilds the request:
+
+- it drops all client `system`, `developer`, and `tool` messages,
+- it keeps only `user` and `assistant` text messages,
+- it prepends the `systemPrompt` from `back.json`,
+- it pins `model`, `temperature`, `top_p`, and `max_tokens` from `back.json`,
+- it drops tools and unknown fields,
+- it limits history to `maxMessages` and input to `maxInputChars`.
+
+Do not move this policy back into the client. The browser is not a trust
+boundary. If the proxy is bypassed (for example by pointing the widget directly
+at the Chat AI back service), the backend prompt is not enforced.
 
 Streaming responses use server-sent events: `data: {json}` lines terminated by a
 blank line, ending with `data: [DONE]`. The client yields the text deltas.
@@ -121,6 +132,13 @@ status code alone.
   keep the alt text (`aiIconAlt`). Do not replace it with a custom badge. The
   source and licence note are in `assets/eu-ai-icons/README.md`. The badge does
   not by itself establish AI Act compliance.
+- In popup mode the launcher must be keyboard accessible, have a visible focus
+  state, an `aria-label`, and `aria-expanded`. Opening and minimizing must not
+  drop the conversation. The panel must keep the AI disclosure, EU badge, and
+  Data privacy link.
+- Keep the system prompt in `secrets/back.json`, not in browser code. The proxy
+  must drop client system/developer messages and rebuild the request. Never log
+  the system prompt or message content.
 - The proxy forwards only `/models` and `/chat/completions` (plus their `/v1`
   aliases) and `/health`. Do not turn it into an open forward proxy.
 - `CORS_ORIGIN=*` is for local development. Restrict it in production.
@@ -154,10 +172,10 @@ Keep these names stable unless a breaking change is intentional:
 - Widget configuration keys: `endpoint`, `model`, `systemPrompt`,
   `temperature`, `topP`, `maxTokens`, `token`, `serviceName`, `title`,
   `aiDisclosure`, `privacyLinkLabel`, `privacyDetails`, `aiIconAlt`,
-  `welcome`, `placeholder`, `height`
+  `welcome`, `placeholder`, `height`, `popup`
 - String attributes use kebab-case (`system-prompt`, `service-name`).
-  Sampling values (`temperature`, `topP`, `maxTokens`) are set with
-  `configure()`.
+  Sampling values (`temperature`, `topP`, `maxTokens`) are for direct mode; the
+  included proxy pins them from `back.json`.
 
 Code style:
 
@@ -190,9 +208,14 @@ Environment overrides:
 - [ ] The AI disclosure is visible in the widget.
 - [ ] The Data privacy link is next to the EU badge and opens the full statement
       in the dialog.
+- [ ] The popup example opens and minimizes from the launcher icon and keeps its
+      messages while minimized.
 - [ ] The official EU fully AI-generated badge is next to the assistant title,
       visible, and has alt text.
-- [ ] The backend model from `secrets/back.json` overrides the request model.
+- [ ] The backend model, system prompt, sampling values, and limits from
+      `secrets/back.json` override the client request.
+- [ ] Client `system`/`developer` messages and tool fields are dropped by the
+      proxy.
 - [ ] No secret is present in tracked files.
 - [ ] New configuration and usage are documented in `README.md`.
 - [ ] Model output is written with `textContent`, never injected as HTML.

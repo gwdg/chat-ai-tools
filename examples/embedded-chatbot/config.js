@@ -12,14 +12,10 @@
 
 export const chatConfig = {
   endpoint: "http://localhost:8081",
-  // Fallback model for a plain Chat AI back service. When the proxy has a model
-  // in secrets/back.json, the proxy overrides this value.
+  // Model, system prompt, sampling values, and limits are enforced by the proxy
+  // from secrets/back.json. This fallback model is only used when the page talks
+  // to a plain Chat AI back service without the included proxy.
   model: "qwen3-30b-a3b-instruct-2507",
-  systemPrompt:
-    "You are a helpful assistant embedded on a university webpage. Answer clearly and concisely. If you are unsure, say so instead of inventing facts.",
-  temperature: 0.4,
-  topP: 0.8,
-  maxTokens: 1200,
   title: "SAIA Assistant",
   aiDisclosure:
     "You are chatting with an AI assistant. Responses are generated automatically and may be inaccurate.",
