@@ -11,7 +11,7 @@
 // to every visitor. Prefer the proxy for anything public.
 
 export const chatConfig = {
-  endpoint: "http://localhost:8081",
+  endpoint: "http://127.0.0.1:8081",
   // Model, system prompt, sampling values, and limits are enforced by the proxy
   // from secrets/back.json. This fallback model is only used when the page talks
   // to a plain Chat AI back service without the included proxy.

@@ -16,6 +16,9 @@ configuration without copying the whole Chat AI front end.
 | `examples/embedded-chatbot/` | Example webpage with a predefined SAIA assistant configuration |
 | `examples/popup-chatbot/` | Same widget in popup/launcher mode |
 | `examples/proxy/server.mjs` | Minimal Node proxy that keeps the SAIA API key on the server |
+| `tools/local-folder-mcp/` | Read-only MCP server for local folders with native access confirmation dialogs |
+| `build/windows/` | Standalone Windows executable (Node SEA) and Inno Setup installer |
+| `README-Windows.txt` | Complete Windows build, install, and troubleshooting guide |
 | `assets/eu-ai-icons/` | Official EU “fully AI-generated” badge, black and white variants |
 | `scripts/serve.mjs` | Static server for local development |
 | `tests/` | `node:test` suites for the client logic |
@@ -36,7 +39,7 @@ browsers; Node code requires Node.js 18 or newer.
 
    ```bash
    npm run proxy
-   # http://localhost:8081 -> https://chat-ai.academiccloud.de/v1
+   # http://127.0.0.1:8081 -> https://chat-ai.academiccloud.de/v1
    ```
 
 3. Start the static server in a second terminal:
@@ -47,17 +50,21 @@ browsers; Node code requires Node.js 18 or newer.
 
 4. Open an example:
 
-   - Embedded: <http://localhost:8080/examples/embedded-chatbot/>
-   - Popup: <http://localhost:8080/examples/popup-chatbot/>
+   - Embedded: <http://127.0.0.1:8080/examples/embedded-chatbot/>
+   - Popup: <http://127.0.0.1:8080/examples/popup-chatbot/>
 
 The API key stays in `secrets/back.json`; it is never sent to the browser.
+
+Both the proxy and the development server bind to **127.0.0.1 only**. A
+non-loopback `HOST` value is refused. The MCP server uses stdio and opens no
+network port at all.
 
 ## How the example works
 
 ```
 browser page
   └─ <chat-ai-widget>
-       └─ POST http://localhost:8081/chat/completions
+       └─ POST http://127.0.0.1:8081/chat/completions
             └─ examples/proxy/server.mjs
                  └─ POST https://chat-ai.academiccloud.de/v1/chat/completions
 ```
@@ -67,7 +74,7 @@ The predefined configuration lives in
 
 ```js
 export const chatConfig = {
-  endpoint: "http://localhost:8081",
+  endpoint: "http://127.0.0.1:8081",
   // Fallback for a plain Chat AI back service; the proxy overrides it when
   // secrets/back.json contains a model.
   model: "qwen3-30b-a3b-instruct-2507",
@@ -90,6 +97,7 @@ configured in `secrets/back.json`:
 ```json
 {
   "port": 8081,
+  "host": "127.0.0.1",
   "apiEndpoint": "https://chat-ai.academiccloud.de/v1",
   "apiKey": "<your SAIA API key>",
   "model": "qwen3-30b-a3b-instruct-2507",
@@ -124,7 +132,7 @@ If you already run the Chat AI `back` service, you can skip `npm run proxy` and
 point the widget at it:
 
 ```js
-endpoint: "http://localhost:8081"
+endpoint: "http://127.0.0.1:8081"
 ```
 
 This bypasses the backend-enforced prompt and sampling policy of this
@@ -144,7 +152,7 @@ service directly (as above) or start this proxy on another port, for example:
 PORT=8091 npm run proxy
 ```
 
-Then set `endpoint: "http://localhost:8091"` in
+Then set `endpoint: "http://127.0.0.1:8091"` in
 `examples/embedded-chatbot/config.js`.
 
 ## Using the widget
@@ -157,7 +165,7 @@ Then set `endpoint: "http://localhost:8091"` in
 <script type="module">
   await customElements.whenDefined("chat-ai-widget");
   document.querySelector("#chat").configure({
-    endpoint: "http://localhost:8081",
+    endpoint: "http://127.0.0.1:8081",
     model: "qwen3-30b-a3b-instruct-2507",
     systemPrompt: "You are a helpful assistant.",
     title: "SAIA Assistant",
@@ -182,7 +190,7 @@ The widget provides:
 
 | Key | Default | Meaning |
 |---|---|---|
-| `endpoint` | `http://localhost:8081` | Base URL of the proxy or OpenAI-compatible endpoint |
+| `endpoint` | `http://127.0.0.1:8081` | Base URL of the proxy or OpenAI-compatible endpoint |
 | `model` | `""` | Model id. Leave empty when the proxy supplies it; the example sets a fallback. |
 | `systemPrompt` | `""` | Optional client-side system message for direct mode; the included proxy ignores it and uses `back.json`. |
 | `temperature` | `0.5` | Sampling temperature for direct mode; the included proxy pins it from `back.json`. |
@@ -204,7 +212,7 @@ String settings can also be passed as kebab-case attributes:
 
 ```html
 <chat-ai-widget
-  endpoint="http://localhost:8081"
+  endpoint="http://127.0.0.1:8081"
   model="qwen3-30b-a3b-instruct-2507"
   system-prompt="You are a helpful assistant."
   title="SAIA Assistant"
@@ -225,7 +233,7 @@ default is used, so the notice is never silently removed. The dialog renders
 Set `popup: true` with `configure()`, or use the boolean attribute:
 
 ```html
-<chat-ai-widget popup endpoint="http://localhost:8081"></chat-ai-widget>
+<chat-ai-widget popup endpoint="http://127.0.0.1:8081"></chat-ai-widget>
 ```
 
 In popup mode the widget renders a fixed chat icon in the bottom-right corner.
@@ -259,7 +267,7 @@ Deploy `assets/eu-ai-icons/` together with `src/chat-ai-widget.js`.
 import { ChatAIClient } from "./src/chat-ai-client.js";
 
 const client = new ChatAIClient({
-  endpoint: "http://localhost:8081",
+  endpoint: "http://127.0.0.1:8081",
   // token: "…", // only for direct endpoints
 });
 
@@ -278,6 +286,82 @@ The client also provides `chat()` for a single non-streaming answer and
 `listModels()` for the model catalogue. It throws `ChatAIError` with `status` and
 `body` when the endpoint fails. `listModels()` also rejects when a deployment
 returns HTTP 200 with an error body, as SAIA can do when credentials are wrong.
+
+## Local folder MCP server
+
+`tools/local-folder-mcp/` provides a small, dependency-free Model Context
+Protocol server for local folders. It is read-only and asks via a native dialog
+before a folder is accessed:
+
+- `request_folder_access`
+- `list_folder`
+- `read_file`
+- `list_allowed_folders`
+
+Each dialog offers **Allow for session**, **Allow once**, or **Deny**. Session
+grants are remembered in memory until the server stops. On Linux, install
+`zenity` or `kdialog`; Windows uses PowerShell/WinForms and macOS uses
+`osascript`.
+
+For Chat AI, start the URL-based HTTP mode:
+
+```bash
+npm run mcp:folder
+```
+
+It prints:
+
+```text
+local-folder-mcp HTTP server listening on 127.0.0.1:3921
+Use the following MCP endpoint in Chat AI:
+http://127.0.0.1:3921/mcp
+```
+
+Paste that URL into Chat AI’s MCP server settings. The HTTP mode binds to
+`127.0.0.1` only. For MCP clients that spawn a child process, use
+`node tools/local-folder-mcp/server.mjs` (stdio) or `npm run mcp:folder:stdio`.
+
+See [tools/local-folder-mcp/README.md](tools/local-folder-mcp/README.md) for the
+MCP client configuration and security notes.
+
+### Windows installation
+
+The MCP server can be shipped as a single `local-folder-mcp.exe` with no Node.js
+installation. Windows PowerShell (built into Windows) provides the confirmation
+dialogs; `zenity`/`kdialog` are not needed on Windows.
+
+See [README-Windows.txt](README-Windows.txt) for the complete build, install,
+configuration, update, uninstall, and troubleshooting guide.
+
+Build it **on Windows** (the script copies the running `node.exe`):
+
+```powershell
+npm ci
+npm run build:windows
+```
+
+Then install Inno Setup 6 and build the per-user installer:
+
+```powershell
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\windows\installer.iss
+```
+
+Artifacts:
+
+- `build/windows/out/local-folder-mcp.exe` — standalone executable.
+- `build/windows/out/local-folder-mcp-setup.exe` — installer.
+
+The installer installs into `%LOCALAPPDATA%` and adds a Start Menu shortcut. The
+shortcut starts the server in HTTP mode and prints the Chat AI endpoint, for
+example `http://127.0.0.1:3921/mcp`.
+
+You can also run the **Build Windows installer** GitHub Actions workflow
+manually and download the artifact. The executable and installer are unsigned;
+sign them before distributing them broadly to avoid SmartScreen warnings.
+
+Use the endpoint from a Chat AI instance served locally over HTTP
+(`http://localhost` or `http://127.0.0.1`). An HTTPS-hosted Chat AI page may block
+the local HTTP MCP endpoint as mixed content.
 
 ## Direct SAIA access
 
@@ -298,15 +382,21 @@ Caveats:
 ## Development
 
 ```bash
-npm test          # client tests
-npm run dev       # static server on :8080
-npm run proxy     # proxy on :8081
+npm test                  # client and server tests
+npm run dev               # static server on :8080
+npm run proxy             # proxy on :8081
+npm run mcp:folder        # local folder MCP server over HTTP
+npm run mcp:folder:stdio  # local folder MCP server over stdio
 ```
 
 Environment overrides:
 
 - `PORT` — static server or proxy port.
-- `CORS_ORIGIN` — proxy CORS origin (default `*`; restrict in production).
+- `HOST` — loopback bind address. Only `127.0.0.1` or `::1` is accepted;
+  anything else is refused.
+- `CORS_ORIGIN` — comma-separated allowed origins. By default, localhost and
+  127.0.0.1 browser origins are accepted. `*` allows every website to call the
+  local proxy and should not be used.
 - `CONFIG_LOCATION` — proxy config path (default `secrets/back.json`).
 
 The static server redirects `/` to the example page. It serves the repository
@@ -315,14 +405,16 @@ build step.
 
 ## Production notes
 
-The example proxy is intentionally small and intended for local development.
-Before exposing it publicly, add:
+The example proxy is intentionally small and intended for local development. It
+refuses non-loopback hosts and accepts only local browser origins by default.
+For remote access, put a properly authenticated service behind a TLS-terminating
+reverse proxy; do not change this proxy to listen on `0.0.0.0`.
+
+Additional production hardening:
 
 - authentication and authorization,
 - rate limiting and request-size limits,
-- a restricted `CORS_ORIGIN`,
-- logging that never includes message content or secrets,
-- a TLS-terminating reverse proxy.
+- logging that never includes message content or secrets.
 
 ## Adding a tool
 
