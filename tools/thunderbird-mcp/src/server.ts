@@ -641,6 +641,7 @@ export function createServer(options: ServerOptions = {}): McpServer {
       `read_mailbox:${folder.accountKey}:${folder.id}`,
       action,
       [...details, mailboxAccessDetails(context, folder)].join("\n"),
+      "Thunderbird mailbox access",
     );
   }
 
@@ -661,10 +662,13 @@ export function createServer(options: ServerOptions = {}): McpServer {
         `Accounts: ${accounts.length}`,
         ...accounts.slice(0, 10),
         accounts.length > 10 ? `... and ${accounts.length - 10} more` : null,
-        "This grants access to account names, identities, and folder names until the server stops.",
+        "This returns only account names, identities, email addresses, and folder names to the AI.",
+        "It does not return message subjects, bodies, or attachments.",
+        "Allow for session skips this metadata dialog until the server stops.",
       ]
         .filter((line): line is string => Boolean(line))
         .join("\n"),
+      "Thunderbird mailbox access",
     );
   }
 
@@ -726,6 +730,10 @@ export function createServer(options: ServerOptions = {}): McpServer {
         await requireMetadataAccess(
           context,
           "read the list of Thunderbird accounts and identities",
+          [
+            "Tool: list_accounts",
+            "The AI will receive account labels, identity names, email addresses, and Drafts folder names.",
+          ],
         );
         return {
           profile: profileView(context),
@@ -800,7 +808,11 @@ export function createServer(options: ServerOptions = {}): McpServer {
           account
             ? `read the folder list for account ${account}`
             : "read the list of Thunderbird mail folders",
-          [`Folders: ${visible.length}`],
+          [
+            "Tool: list_folders",
+            "The AI will receive folder names, account labels, folder types, and message counts.",
+            `Folders returned: ${visible.length}`,
+          ],
         );
         return {
           profile: profileView(context),

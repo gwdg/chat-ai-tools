@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+*.log
+*.db
+*.db-wal
+*.db-shm
+crm-backup-*.db
+.env
+.env.*
+!.env.example
+.crm-mcp.pid

@@ -7,10 +7,15 @@ export class ActionApprovals {
 
   constructor(private readonly dialog: ConfirmationDialog = confirmAction) {}
 
-  async require(actionKey: string, action: string, details: string): Promise<void> {
+  async require(
+    actionKey: string,
+    action: string,
+    details: string,
+    title?: string,
+  ): Promise<void> {
     if (this.approved.has(actionKey)) return;
 
-    const choice = await this.dialog({ action, details });
+    const choice = await this.dialog({ title, action, details });
     if (choice === "session") {
       this.approved.add(actionKey);
       return;

@@ -11,6 +11,9 @@
     "mcp:folder": "node tools/local-folder-mcp/server.mjs --http",
     "mcp:folder:http": "node tools/local-folder-mcp/server.mjs --http",
     "mcp:folder:stdio": "node tools/local-folder-mcp/server.mjs",
+    "mcp:crm": "node tools/crm-mcp/dist/index.js --http",
+    "mcp:crm:http": "node tools/crm-mcp/dist/index.js --http",
+    "mcp:crm:stdio": "node tools/crm-mcp/dist/index.js",
     "build:windows": "node build/windows/build-sea.mjs"
   },
   "engines": {

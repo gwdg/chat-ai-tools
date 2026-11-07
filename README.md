@@ -18,6 +18,7 @@ configuration without copying the whole Chat AI front end.
 | `examples/proxy/server.mjs` | Minimal Node proxy that keeps the SAIA API key on the server |
 | `tools/local-folder-mcp/` | Read-only MCP server for local folders with native access confirmation dialogs |
 | `tools/thunderbird-mcp/` | Local Thunderbird MCP server + privileged extension; native mailbox access and action confirmation dialogs |
+| `tools/crm-mcp/` | Local-first CRM MCP server backed by SQLite; native write confirmation and audit log |
 | `build/windows/` | Standalone Windows executable (Node SEA) and Inno Setup installer |
 | `README-Windows.txt` | Complete Windows build, install, and troubleshooting guide |
 | `assets/eu-ai-icons/` | Official EU “fully AI-generated” badge, black and white variants |
@@ -378,6 +379,28 @@ and marking it answered - show a separate confirmation dialog and are remembered
 per action and account. The user can allow once, allow for the session, or deny.
 See [tools/thunderbird-mcp/README.md](tools/thunderbird-mcp/README.md) and
 [RUNNING.md](tools/thunderbird-mcp/RUNNING.md).
+
+## CRM MCP server
+
+`tools/crm-mcp/` is a local-first CRM MCP server backed by a single SQLite file.
+It exposes contacts, companies, deals, activities, tasks, tags, pipeline
+reporting, resources, and prompts without exposing SQL to the model.
+
+Every write opens the same native confirmation dialog as the other local MCP
+servers and is saved to an immutable audit log with actor, action, confirmation
+mode, and before/after values. It requires Node.js 22 or newer for the built-in
+`node:sqlite` module. The HTTP mode uses the same Bearer authentication model,
+listens on port `8766` by default, and allows localhost CORS origins.
+
+```bash
+cd tools/crm-mcp
+npm install
+npm run build
+node dist/index.js --http --port 8766 --db ~/crm/crm.db
+```
+
+See [tools/crm-mcp/README.md](tools/crm-mcp/README.md) and
+[RUNNING.md](tools/crm-mcp/RUNNING.md).
 
 ## Direct SAIA access
 

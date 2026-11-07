@@ -32,6 +32,7 @@ chat-ai-tools/
 │       └── request-policy.mjs Builds the backend-enforced chat request
 ├── tools/local-folder-mcp/    Read-only local folder MCP server + native dialogs
 ├── tools/thunderbird-mcp/     Thunderbird MCP server + privileged extension
+├── tools/crm-mcp/             Local-first CRM MCP server backed by SQLite
 ├── assets/eu-ai-icons/        Official EU fully AI-generated badge (black/white)
 ├── scripts/serve.mjs          Static server for local development
 ├── tests/                     node:test suites
