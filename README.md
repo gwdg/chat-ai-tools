@@ -17,6 +17,7 @@ configuration without copying the whole Chat AI front end.
 | `examples/popup-chatbot/` | Same widget in popup/launcher mode |
 | `examples/proxy/server.mjs` | Minimal Node proxy that keeps the SAIA API key on the server |
 | `tools/local-folder-mcp/` | Read-only MCP server for local folders with native access confirmation dialogs |
+| `tools/thunderbird-mcp/` | Local Thunderbird MCP server + privileged extension; native mailbox access and action confirmation dialogs |
 | `build/windows/` | Standalone Windows executable (Node SEA) and Inno Setup installer |
 | `README-Windows.txt` | Complete Windows build, install, and troubleshooting guide |
 | `assets/eu-ai-icons/` | Official EU “fully AI-generated” badge, black and white variants |
@@ -362,6 +363,21 @@ sign them before distributing them broadly to avoid SmartScreen warnings.
 Use the endpoint from a Chat AI instance served locally over HTTP
 (`http://localhost` or `http://127.0.0.1`). An HTTPS-hosted Chat AI page may block
 the local HTTP MCP endpoint as mixed content.
+
+## Thunderbird MCP server
+
+`tools/thunderbird-mcp/` is a separate local MCP server that reads Thunderbird
+mail and creates drafts through a privileged Thunderbird extension. It never
+sends mail, never uses IMAP/SMTP credentials, and supports stdio or a localhost
+Streamable HTTP endpoint.
+
+Mail access uses the same native confirmation dialog as the local folder MCP
+server: the user confirms each mailbox and can allow it for the session. Mutating
+actions - creating a draft, marking a message read/unread, changing its priority,
+and marking it answered - show a separate confirmation dialog and are remembered
+per action and account. The user can allow once, allow for the session, or deny.
+See [tools/thunderbird-mcp/README.md](tools/thunderbird-mcp/README.md) and
+[RUNNING.md](tools/thunderbird-mcp/RUNNING.md).
 
 ## Direct SAIA access
 

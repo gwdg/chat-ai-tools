@@ -31,6 +31,7 @@ chat-ai-tools/
 │       ├── server.mjs         Minimal server-side proxy for Chat AI / SAIA
 │       └── request-policy.mjs Builds the backend-enforced chat request
 ├── tools/local-folder-mcp/    Read-only local folder MCP server + native dialogs
+├── tools/thunderbird-mcp/     Thunderbird MCP server + privileged extension
 ├── assets/eu-ai-icons/        Official EU fully AI-generated badge (black/white)
 ├── scripts/serve.mjs          Static server for local development
 ├── tests/                     node:test suites

@@ -1,0 +1,23 @@
+// Synthetic Thunderbird profile used by the test suite.
+user_pref("mail.account.account1.server", "server1");
+user_pref("mail.account.account1.identities", "id1");
+user_pref("mail.account.account2.server", "server2");
+user_pref("mail.account.account2.identities", "id2");
+user_pref("mail.identity.id1.useremail", "alice@example.com");
+user_pref("mail.identity.id1.fullName", "Alice Example");
+user_pref("mail.identity.id1.valid", true);
+user_pref("mail.identity.id1.draft_folder", "mailbox://nobody@Local%20Folders/Drafts");
+user_pref("mail.identity.id1.fcc_folder", "mailbox://nobody@Local%20Folders/Sent");
+user_pref("mail.identity.id2.useremail", "bob@example.net");
+user_pref("mail.identity.id2.fullName", "Bob Example");
+user_pref("mail.identity.id2.valid", true);
+user_pref("mail.identity.id2.draft_folder", "mailbox://bob@imap.example.net/Drafts");
+user_pref("mail.server.server1.type", "none");
+user_pref("mail.server.server1.hostname", "Local Folders");
+user_pref("mail.server.server1.name", "Local Folders");
+user_pref("mail.server.server1.directory", "Mail/Local Folders");
+user_pref("mail.server.server2.type", "imap");
+user_pref("mail.server.server2.hostname", "imap.example.net");
+user_pref("mail.server.server2.name", "bob@imap.example.net");
+user_pref("mail.server.server2.userName", "bob@example.net");
+user_pref("mail.server.server2.directory", "ImapMail/imap.example.net");

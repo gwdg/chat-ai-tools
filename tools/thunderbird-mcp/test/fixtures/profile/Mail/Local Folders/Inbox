@@ -1,0 +1,65 @@
+From - Mon Jan 01 10:00:00 2024
+From: Alice Example <alice@example.com>
+To: Bob Example <bob@example.net>
+Subject: Welcome to Thunderbird
+Date: Mon, 01 Jan 2024 10:00:00 +0000
+Message-ID: <msg-1@example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+X-Mozilla-Status: 0000
+X-Mozilla-Status2: 00000000
+X-Mozilla-Keys: 
+
+Hello Bob,
+
+This is the first message in the local Inbox.
+
+Thanks,
+Alice
+
+From - Tue Jan 02 11:30:00 2024
+From: =?UTF-8?B?SsO2cmcgTcO8bGxlcg==?= <joerg@example.de>
+To: Bob Example <bob@example.net>
+Subject: =?UTF-8?B?R3LDvMOfZSBhdXMgTcO8bmNoZW4=?=
+Date: Tue, 02 Jan 2024 11:30:00 +0000
+Message-ID: <msg-2@example.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+X-Mozilla-Status: 0000
+X-Mozilla-Status2: 00000000
+X-Mozilla-Keys: 
+
+Hallo Bob,
+
+viele Grüße aus München.
+
+Jörg
+
+From - Wed Jan 03 09:15:00 2024
+From: Carol <carol@example.org>
+To: Bob Example <bob@example.net>
+Subject: Re: project update
+Date: Wed, 03 Jan 2024 09:15:00 +0000
+Message-ID: <msg-3@example.org>
+In-Reply-To: <msg-0@example.org>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="b1"
+X-Mozilla-Status: 0005
+X-Mozilla-Status2: 00000000
+X-Mozilla-Keys: 
+
+--b1
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Here is the plain text version of the project update.
+
+--b1
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+<html><body><p>Here is the <b>HTML</b> version of the project update.</p></body></html>
+
+--b1--

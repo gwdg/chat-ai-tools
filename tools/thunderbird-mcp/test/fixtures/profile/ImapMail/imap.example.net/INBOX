@@ -1,0 +1,16 @@
+From - Fri Jan 05 08:00:00 2024
+From: Eve <eve@example.net>
+To: Bob Example <bob@example.net>
+Subject: IMAP inbox message
+Date: Fri, 05 Jan 2024 08:00:00 +0000
+Message-ID: <msg-4@example.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+X-Mozilla-Status: 0000
+X-Mozilla-Status2: 00000000
+X-Mozilla-Keys: 
+
+This one lives in the IMAP account folder and mentions a quarterly report.
+
+Eve

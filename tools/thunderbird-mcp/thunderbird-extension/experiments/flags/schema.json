@@ -1,0 +1,125 @@
+[
+  {
+    "namespace": "mcpFlags",
+    "functions": [
+      {
+        "name": "ping",
+        "type": "function",
+        "async": true,
+        "parameters": [],
+        "description": "Return bridge diagnostics without changing messages."
+      },
+      {
+        "name": "markMessage",
+        "type": "function",
+        "async": true,
+        "description": "Mark a message read/unread and/or answered using Thunderbird's own database and IMAP flag sync.",
+        "parameters": [
+          {
+            "name": "messageId",
+            "type": "string",
+            "description": "RFC Message-ID without angle brackets."
+          },
+          {
+            "name": "read",
+            "type": "boolean",
+            "optional": true,
+            "description": "Set the read state. Omit to leave it unchanged."
+          },
+          {
+            "name": "answered",
+            "type": "boolean",
+            "optional": true,
+            "description": "When true, set the answered/replied flag."
+          },
+          {
+            "name": "accountKey",
+            "type": "string",
+            "optional": true,
+            "description": "Restrict the lookup to this Thunderbird account key."
+          }
+        ]
+      },
+      {
+        "name": "diagnose",
+        "type": "function",
+        "async": true,
+        "parameters": [],
+        "description": "Return diagnostic information about the bridge directories."
+      },
+      {
+        "name": "touchStatus",
+        "type": "function",
+        "async": true,
+        "parameters": [],
+        "description": "Write a heartbeat status file for the MCP bridge."
+      },
+      {
+        "name": "takeCommands",
+        "type": "function",
+        "async": true,
+        "parameters": [],
+        "description": "Return and delete pending commands from the profile bridge directory."
+      },
+      {
+        "name": "writeResult",
+        "type": "function",
+        "async": true,
+        "description": "Write a command result into the profile bridge directory.",
+        "parameters": [
+          {
+            "name": "payload",
+            "type": "string",
+            "description": "JSON result payload to write."
+          }
+        ]
+      },
+      {
+        "name": "socketStart",
+        "type": "function",
+        "async": true,
+        "parameters": [],
+        "description": "Start the Unix domain socket bridge. Returns a JSON string."
+      },
+      {
+        "name": "socketStop",
+        "type": "function",
+        "async": true,
+        "parameters": [],
+        "description": "Stop the Unix domain socket bridge. Returns a JSON string."
+      },
+      {
+        "name": "socketStatus",
+        "type": "function",
+        "async": true,
+        "parameters": [],
+        "description": "Return Unix socket bridge status as a JSON string."
+      },
+      {
+        "name": "takeRequest",
+        "type": "function",
+        "async": true,
+        "parameters": [],
+        "description": "Return the next queued socket request as a JSON string, or the string null."
+      },
+      {
+        "name": "sendResponse",
+        "type": "function",
+        "async": true,
+        "description": "Queue a JSON response for a socket connection. Returns a JSON string.",
+        "parameters": [
+          {
+            "name": "connectionId",
+            "type": "integer",
+            "description": "Connection id from takeRequest."
+          },
+          {
+            "name": "payload",
+            "type": "string",
+            "description": "JSON response payload."
+          }
+        ]
+      }
+    ]
+  }
+]

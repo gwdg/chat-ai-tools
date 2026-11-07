@@ -1,0 +1,15 @@
+From - Thu Jan 04 12:00:00 2024
+From: Alice Example <alice@example.com>
+To: Bob Example <bob@example.net>
+Subject: Unfinished draft
+Date: Thu, 04 Jan 2024 12:00:00 +0000
+Message-ID: <draft-1@example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+X-Mozilla-Status: 0001
+X-Mozilla-Status2: 00000000
+X-Mozilla-Keys: 
+X-Mozilla-Draft-Info: internal/draft; v.11; charset=utf-8
+
+This draft already existed before the MCP server wrote anything.

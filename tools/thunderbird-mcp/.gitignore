@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Test output and coverage
+coverage/
+.nyc_output/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+.thunderbird-mcp.pid
+
+# Temporary files
+tmp/
+temp/
+.cache/
+.turbo/
+
+# Thunderbird / mail artifacts
+thunderbird-extension/crm/
+cache/
+*.msf
+
+# Editors and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+crm
