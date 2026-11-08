@@ -12,8 +12,9 @@ import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
 const require = createRequire(import.meta.url);
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const outDir = path.join(root, "build/windows/out");
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(scriptDir, "../../..");
+const outDir = path.join(scriptDir, "out");
 const isWindows = process.platform === "win32";
 const exeName = isWindows ? "local-folder-mcp.exe" : "local-folder-mcp";
 const bundlePath = path.join(outDir, "local-folder-mcp.cjs");

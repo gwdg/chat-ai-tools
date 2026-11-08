@@ -55,7 +55,7 @@ Run these commands on Windows in PowerShell or Command Prompt.
 `npm run build:windows` copies the running node.exe, bundles the MCP server,
 creates the Node SEA blob, and injects it with postject. The result is:
 
-    build\windows\out\local-folder-mcp.exe
+    build\windows\local-folder-mcp\out\local-folder-mcp.exe
 
 This step must run on Windows. The script copies the hosting node.exe, so it
 does not cross-build a Windows executable from Linux or macOS.
@@ -68,11 +68,11 @@ or download it from https://jrsoftware.org/isdl.php.
 
 Then compile the installer:
 
-    & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\windows\installer.iss
+    & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\windows\local-folder-mcp\installer.iss
 
 The installer is written to:
 
-    build\windows\out\local-folder-mcp-setup.exe
+    build\windows\local-folder-mcp\out\local-folder-mcp-setup.exe
 
 
 4. Build with GitHub Actions
@@ -96,7 +96,7 @@ The artifact contains both `local-folder-mcp.exe` and
 5. Install
 ----------
 
-1. Run `build\windows\out\local-folder-mcp-setup.exe`.
+1. Run `build\windows\local-folder-mcp\out\local-folder-mcp-setup.exe`.
 2. Follow the wizard. The installer is per-user and does not require admin
    rights.
 3. The files are installed to:
@@ -285,12 +285,12 @@ Health check:
 -------------------
 
 - Source: `tools/local-folder-mcp/`
-- Windows build: `build/windows/build-sea.mjs`
-- Installer: `build/windows/installer.iss`
-- End-user installer guide: `build/windows/installer-readme.txt`
+- Windows build: `build/windows/local-folder-mcp/build-sea.mjs`
+- Installer: `build/windows/local-folder-mcp/installer.iss`
+- End-user installer guide: `build/windows/local-folder-mcp/installer-readme.txt`
 - Tests: `npm test`
 - Build-only dependencies: `esbuild`, `postject`
-- Build output is ignored: `build/windows/out/`
+- Build output is ignored: `build/windows/local-folder-mcp/out/`
 
 The SEA build sets `MCP_SEA=1` in the bundle so the bundled server starts
 without the ESM main-module guard. Do not remove that guard or the banner.

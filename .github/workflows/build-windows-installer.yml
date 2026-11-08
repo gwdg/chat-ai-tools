@@ -31,12 +31,12 @@ jobs:
 
       - name: Build installer
         shell: pwsh
-        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\windows\installer.iss'
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\windows\local-folder-mcp\installer.iss'
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: local-folder-mcp-windows
           path: |
-            build/windows/out/local-folder-mcp.exe
-            build/windows/out/local-folder-mcp-setup.exe
+            build/windows/local-folder-mcp/out/local-folder-mcp.exe
+            build/windows/local-folder-mcp/out/local-folder-mcp-setup.exe

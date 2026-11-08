@@ -19,7 +19,10 @@ configuration without copying the whole Chat AI front end.
 | `tools/local-folder-mcp/` | Read-only MCP server for local folders with native access confirmation dialogs |
 | `tools/thunderbird-mcp/` | Local Thunderbird MCP server + privileged extension; native mailbox access and action confirmation dialogs |
 | `tools/crm-mcp/` | Local-first CRM MCP server backed by SQLite; native write confirmation and audit log |
-| `build/windows/` | Standalone Windows executable (Node SEA) and Inno Setup installer |
+| `tools/browser-mcp/` | Local MCP server for headless Chrome: open and read pages, click, type, scroll, and screenshot |
+| `build/windows/local-folder-mcp/` | Standalone Windows executable (Node SEA) and Inno Setup installer |
+| `build/windows/browser-mcp/` | Linux cross-build for the browser MCP Windows executable and NSIS installer |
+| `build/windows/thunderbird-mcp/` | Linux cross-build for the Thunderbird MCP Windows executable, extension XPI, and NSIS installer |
 | `README-Windows.txt` | Complete Windows build, install, and troubleshooting guide |
 | `assets/eu-ai-icons/` | Official EU “fully AI-generated” badge, black and white variants |
 | `scripts/serve.mjs` | Static server for local development |
@@ -345,13 +348,13 @@ npm run build:windows
 Then install Inno Setup 6 and build the per-user installer:
 
 ```powershell
-& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\windows\installer.iss
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\windows\local-folder-mcp\installer.iss
 ```
 
 Artifacts:
 
-- `build/windows/out/local-folder-mcp.exe` — standalone executable.
-- `build/windows/out/local-folder-mcp-setup.exe` — installer.
+- `build/windows/local-folder-mcp/out/local-folder-mcp.exe` — standalone executable.
+- `build/windows/local-folder-mcp/out/local-folder-mcp-setup.exe` — installer.
 
 The installer installs into `%LOCALAPPDATA%` and adds a Start Menu shortcut. The
 shortcut starts the server in HTTP mode and prints the Chat AI endpoint, for
@@ -380,6 +383,24 @@ per action and account. The user can allow once, allow for the session, or deny.
 See [tools/thunderbird-mcp/README.md](tools/thunderbird-mcp/README.md) and
 [RUNNING.md](tools/thunderbird-mcp/RUNNING.md).
 
+### Windows installer from Linux
+
+`build/windows/thunderbird-mcp/build-installer.sh` cross-builds a standalone
+`thunderbird-mcp.exe` (Node SEA with dependencies bundled) and an NSIS installer
+from Linux. It also packages the privileged Thunderbird extension as an XPI and
+as an unpacked folder, and the launcher generates a random Bearer token.
+
+```bash
+npm install
+npm --prefix tools/thunderbird-mcp install
+sudo apt install nsis   # provides makensis
+npm run build:thunderbird:windows
+```
+
+Artifacts land in `build/windows/thunderbird-mcp/out/`. Use `ZIP_ONLY=1` to skip
+NSIS. See [build/windows/thunderbird-mcp/README.md](build/windows/thunderbird-mcp/README.md)
+for details.
+
 ## CRM MCP server
 
 `tools/crm-mcp/` is a local-first CRM MCP server backed by a single SQLite file.
@@ -401,6 +422,68 @@ node dist/index.js --http --port 8766 --db ~/crm/crm.db
 
 See [tools/crm-mcp/README.md](tools/crm-mcp/README.md) and
 [RUNNING.md](tools/crm-mcp/RUNNING.md).
+
+## Browser MCP server
+
+`tools/browser-mcp/` gives an assistant a local headless Chrome browser. It
+opens `http(s)` pages, reads their text and links, lists interactive elements,
+clicks, types, presses keys, scrolls, waits for content, evaluates JavaScript in
+the page, takes screenshots, and manages tabs. Chrome starts lazily on the first
+`browser_open` call.
+
+It drives the Chrome/Chromium already installed on the machine through
+`puppeteer-core`; it does not download a browser.
+
+```bash
+cd tools/browser-mcp
+npm install
+npm start
+# or: make start [PORT=3922] [CHROME=/path/to/chrome]
+```
+
+It prints:
+
+```text
+browser-mcp HTTP server listening on 127.0.0.1:3922
+Use the following MCP endpoint in Chat AI:
+http://127.0.0.1:3922/mcp
+```
+
+The HTTP mode binds to `127.0.0.1` only. Each `Mcp-Session-Id` gets its own
+isolated browser context, so separate chats have separate tabs, cookies, and
+active tabs while sharing one Chrome process. Idle sessions expire after 30
+minutes by default and the session count is capped. Browsing is human-like by
+default: normal Chrome user agent, system locale/timezone, curved mouse
+movement, typing delays, and wheel scrolling. Set `BROWSER_MCP_HUMANIZE=0` to
+disable it. Set `MCP_BROWSER_TOKEN` to require a Bearer token on `/mcp`; no
+authentication is used by default.
+
+For MCP clients that spawn a child process, use `npm run stdio` in the tool
+folder or `npm run mcp:browser:stdio` from the repository root. Set
+`BROWSER_MCP_CHROME_PATH` if Chrome is not in a standard location, and
+`BROWSER_MCP_ALLOWED_HOSTS` to restrict navigation.
+
+### Windows installer from Linux
+
+`build/windows/browser-mcp/build-installer.sh` cross-builds a standalone
+`browser-mcp.exe` (Node SEA with `puppeteer-core` bundled) and an NSIS installer
+from Linux. The target machine needs Chrome, Chromium, or Edge; the browser is
+not bundled.
+
+```bash
+npm install
+npm --prefix tools/browser-mcp install
+sudo apt install nsis   # provides makensis
+npm run build:browser:windows
+```
+
+Artifacts land in `build/windows/browser-mcp/out/`. Use `ZIP_ONLY=1` to skip
+NSIS and build only the portable ZIP. See
+[build/windows/browser-mcp/README.md](build/windows/browser-mcp/README.md) for
+details.
+
+See [tools/browser-mcp/README.md](tools/browser-mcp/README.md) for all tools,
+configuration, and security notes.
 
 ## Direct SAIA access
 
@@ -426,6 +509,11 @@ npm run dev               # static server on :8080
 npm run proxy             # proxy on :8081
 npm run mcp:folder        # local folder MCP server over HTTP
 npm run mcp:folder:stdio  # local folder MCP server over stdio
+npm run mcp:browser       # headless browser MCP server over HTTP
+npm run mcp:browser:stdio # headless browser MCP server over stdio
+npm run build:browser:windows     # Windows exe + installer from Linux (needs nsis)
+npm run build:thunderbird:windows # Windows exe + installer + extension XPI from Linux
+make -C build/windows             # build every Windows package this host supports
 ```
 
 Environment overrides:

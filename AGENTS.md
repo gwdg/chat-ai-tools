@@ -33,6 +33,7 @@ chat-ai-tools/
 ├── tools/local-folder-mcp/    Read-only local folder MCP server + native dialogs
 ├── tools/thunderbird-mcp/     Thunderbird MCP server + privileged extension
 ├── tools/crm-mcp/             Local-first CRM MCP server backed by SQLite
+├── tools/browser-mcp/         Headless Chrome MCP server (puppeteer-core)
 ├── assets/eu-ai-icons/        Official EU fully AI-generated badge (black/white)
 ├── scripts/serve.mjs          Static server for local development
 ├── tests/                     node:test suites
@@ -190,20 +191,72 @@ status code alone.
 When changing the server, update `tools/local-folder-mcp/README.md` and the
 root README.
 
+`tools/browser-mcp/` is a local headless-browser MCP server with stdio and
+local HTTP transports. Its invariants:
+
+- **Local transports only.** HTTP mode binds to `127.0.0.1` and refuses any
+  non-loopback `HOST`. Never add a public listener.
+- **stdout is protocol only in stdio mode.** Write JSON-RPC to stdout and logs
+  to stderr.
+- **HTTP mode prints its endpoint.** It prints the same
+  `Use the following MCP endpoint in Chat AI:` block followed by
+  `http://127.0.0.1:<port>/mcp`. Keep that output stable.
+- **HTTP CORS is local by default.** Accept localhost/127.0.0.1 origins; allow
+  `MCP_BROWSER_CORS_ORIGIN` overrides only for a specific local origin.
+- **Optional bearer authentication.** No token is required by default. When
+  `MCP_BROWSER_TOKEN` is set, every `/mcp` request must send
+  `Authorization: Bearer <token>`; compare in constant time. Keep `/health` and
+  CORS preflight (`OPTIONS`) unauthenticated. Never log the token.
+- **Navigation is http(s) only.** `file:`, `javascript:`, `data:`, and other
+  schemes are rejected before Chrome sees them. Keep
+  `BROWSER_MCP_ALLOWED_HOSTS` as an optional host allowlist.
+- **No browser download.** Use `puppeteer-core` with an installed Chrome,
+  Chromium, or Edge executable. `BROWSER_MCP_CHROME_PATH` selects it.
+- **Sandbox first.** Launch with the sandbox when the platform supports it.
+  Only retry with `--no-sandbox` on Linux after a sandbox/namespace failure, and
+  print a warning. `BROWSER_MCP_NO_SANDBOX=1` is an explicit opt-out.
+- **Page context only.** `browser_evaluate` runs JavaScript in the page, never
+  in Node. Do not expose Node APIs, files, or environment variables to it.
+- **Human-like by default, no CAPTCHA bypass.** Tabs use a non-headless Chrome
+  user agent, system locale/timezone, `Accept-Language`, a `navigator.webdriver`
+  override, curved mouse movement, per-character typing delays, and wheel
+  scrolling. `BROWSER_MCP_HUMANIZE=0` disables this. Do not add CAPTCHA solving
+  or claim that it defeats anti-bot systems.
+- **Per-chat sessions.** HTTP mode assigns a `Mcp-Session-Id` on initialize and
+  keeps separate browser contexts, tabs, and active-tab state per session. One
+  session must never reach another session's tabs. Only clients that omit the
+  header share a single fallback session. Sessions expire after the idle
+  timeout and are capped by `MCP_BROWSER_MAX_SESSIONS`.
+- **Temporary profile by default.** Only persist cookies and sessions when
+  `BROWSER_MCP_USER_DATA_DIR` is set; document that it is sensitive. With a
+  persistent profile, sessions still use separate tabs but share the profile's
+  cookies and storage.
+- Tests must not require Chrome on machines without it; the end-to-end test
+  skips when `puppeteer-core` or Chrome is unavailable.
+- When changing the server, update `tools/browser-mcp/README.md` and the root
+  README.
+
 ## Windows packaging
+
+Every packaged tool has its own subfolder under `build/windows/<tool>/`. New
+tools must provide a Windows build that can be produced on Linux; see
+[Adding a tool or example](#adding-a-tool-or-example). `build/windows/Makefile`
+builds every package the current host supports; `make -C build/windows` runs the
+`browser` and `thunderbird` cross-builds and skips `local-folder` outside
+Windows.
 
 The local folder MCP server can be built as a standalone Windows executable and
 an Inno Setup installer.
 
-- Build files live in `build/windows/`.
+- Build files live in `build/windows/local-folder-mcp/`.
 - `npm run build:windows` bundles the server with esbuild and creates a Node SEA
   executable. Run it on Windows; it copies the running `node.exe`, so it cannot
   cross-build a Windows executable from Linux or macOS.
 - The SEA bundle sets `MCP_SEA=1` through an esbuild banner. The bottom of
   `server.mjs` calls `main()` when that variable is set. Do not remove this guard
   or the bundle will fail to start.
-- `build/windows/installer.iss` creates a per-user installer in
-  `%LOCALAPPDATA%` and a Start Menu shortcut that runs `--http`. Keep it
+- `build/windows/local-folder-mcp/installer.iss` creates a per-user installer
+  in `%LOCALAPPDATA%` and a Start Menu shortcut that runs `--http`. Keep it
   `PrivilegesRequired=lowest`; there is no machine-wide install.
 - `esbuild` and `postject` are build-only dev dependencies. The emitted
   executable has no runtime dependencies; Windows PowerShell provides the native
@@ -211,11 +264,58 @@ an Inno Setup installer.
 - `.github/workflows/build-windows-installer.yml` builds the tests, executable,
   and installer on `windows-latest` and uploads the artifacts. Run it with
   `workflow_dispatch`.
-- Do not commit `node_modules/` or `build/windows/out/`.
+- Do not commit `node_modules/` or `build/windows/local-folder-mcp/out/`.
 - The executable and installer are unsigned by default. Sign them with an
   organization certificate before broad distribution to avoid SmartScreen.
-- Keep `build/windows/installer-readme.txt` in sync with the actual endpoint
-  output and access model.
+- Keep `build/windows/local-folder-mcp/installer-readme.txt` in sync with the
+  actual endpoint output and access model.
+
+The browser MCP server has a separate Linux cross-build under
+`build/windows/browser-mcp/`:
+
+- `build-installer.sh` downloads matching Linux and Windows Node.js runtimes,
+  verifies their checksums, bundles `server.mjs` plus `puppeteer-core` with
+  esbuild, creates the SEA blob with the matching Linux Node.js binary, injects
+  it into the Windows `node.exe` with `postject`, and compiles the NSIS
+  installer with `makensis`.
+- The esbuild banner sets `MCP_SEA=1`. Keep the
+  `if (process.env.MCP_SEA === "1") main();` guard at the bottom of
+  `tools/browser-mcp/server.mjs`.
+- `npm run build:browser:windows` runs the script. `ZIP_ONLY=1` skips NSIS and
+  builds only the portable ZIP; `SKIP_TESTS=1` skips the pre-build tests.
+- Outputs are `browser-mcp.exe`, `browser-mcp-setup.exe`,
+  `browser-mcp-windows.zip`, and `SHA256SUMS.txt` in
+  `build/windows/browser-mcp/out/`. Do not commit `out/` or `.cache/`.
+- `makensis` (NSIS) is required for the installer. The artifacts are unsigned,
+  and Chrome/Chromium/Edge is not bundled; the target machine must provide it.
+- Keep `build/windows/browser-mcp/installer.nsi` and `installer-readme.txt` in
+  sync with the endpoint, authentication, and browser requirements.
+
+The Thunderbird MCP server has a Linux cross-build under
+`build/windows/thunderbird-mcp/`:
+
+- `build-installer.sh` builds the TypeScript server, downloads matching Linux
+  and Windows Node.js runtimes, bundles `dist/index.js` with esbuild, creates the
+  SEA blob with the Linux binary, injects it into the Windows `node.exe` with
+  `postject`, packages the extension as an XPI and unpacked folder, and compiles
+  the NSIS installer with `makensis`.
+- The installer adds a launcher that generates a random Bearer token on first
+  run and stores it in `token.txt`; do not replace it with a shared default
+  password.
+- Windows profile detection must include `%APPDATA%\Thunderbird`. Keep
+  `profileBaseDirs()` in `tools/thunderbird-mcp/src/profile.ts` platform-aware.
+- Windows uses the file bridge; the optional Unix socket transport is
+  Linux/macOS-only. Do not make the file bridge require Unix sockets.
+- `npm run build:thunderbird:windows` runs the script. `ZIP_ONLY=1` skips NSIS;
+  `SKIP_TESTS=1` skips the pre-build tests.
+- Outputs are `thunderbird-mcp.exe`, `thunderbird-mcp-setup.exe`,
+  `thunderbird-mcp-extension.xpi`, `thunderbird-mcp-windows.zip`, and
+  `SHA256SUMS.txt` in `build/windows/thunderbird-mcp/out/`. Do not commit
+  `out/` or `.cache/`.
+- The extension is privileged and must be loaded or installed in Thunderbird;
+  the installer does not silently modify the Thunderbird profile.
+- Keep `build/windows/thunderbird-mcp/installer.nsi` and `installer-readme.txt`
+  in sync with the server options, profile detection, and extension steps.
 
 ## Adding a tool or example
 
@@ -230,6 +330,15 @@ Every new tool or example must be documented. A feature is not complete until:
 6. The example has been started with `npm run dev` / `npm run proxy` and
    exercised, not just compiled.
 7. `AGENTS.md` is updated only with constraints verified in the code.
+8. A new tool also includes a Windows installer that can be built on Linux,
+   under `build/windows/<tool>/`, following `build/windows/browser-mcp/`. The
+   cross-build downloads matching Linux and Windows Node.js runtimes, bundles
+   the server with esbuild, creates a Node SEA executable with `postject`, and
+   compiles an NSIS installer with `makensis`. It produces the `.exe`, the
+   installer, a portable ZIP, and `SHA256SUMS.txt`. Add an npm script, document
+   prerequisites and artifacts, and keep the installer readme in sync. If a tool
+   cannot be packaged this way, document why in its README and in `AGENTS.md`
+   instead of silently skipping it.
 
 Do not add a dependency when a built-in browser or Node API is sufficient.
 
@@ -264,6 +373,11 @@ npm run dev         # static server on :8080, redirects / to the example
 npm run proxy       # proxy on :8081, reads secrets/back.json
 npm run mcp:folder       # local folder MCP server over HTTP (prints endpoint)
 npm run mcp:folder:stdio # local folder MCP server over stdio
+npm run mcp:browser       # headless browser MCP server over HTTP (prints endpoint)
+npm run mcp:browser:stdio # headless browser MCP server over stdio
+npm run build:browser:windows # Windows exe + NSIS installer from Linux
+npm run build:thunderbird:windows # Windows exe + installer + extension XPI from Linux
+make -C build/windows             # build every Windows package this host supports
 ```
 
 Environment overrides:
@@ -273,6 +387,22 @@ Environment overrides:
 - `MCP_FOLDER_HTTP_PORT` — local folder MCP HTTP port (default `3921`).
 - `MCP_FOLDER_CORS_ORIGIN` — comma-separated local origins for the MCP HTTP
   mode; defaults to localhost/127.0.0.1.
+- `MCP_BROWSER_HTTP_PORT` — browser MCP HTTP port (default `3922`).
+- `MCP_BROWSER_CORS_ORIGIN` — comma-separated local origins for the browser MCP
+  HTTP mode; defaults to localhost/127.0.0.1.
+- `MCP_BROWSER_TOKEN` — Bearer token required on `/mcp` when set (default: no
+  authentication).
+- `MCP_BROWSER_SESSION_IDLE_MS` — idle session timeout (default `1800000`; `0`
+  disables expiry).
+- `MCP_BROWSER_MAX_SESSIONS` — maximum concurrent sessions (default `20`).
+- `BROWSER_MCP_CHROME_PATH` — Chrome/Chromium/Edge executable to drive.
+- `BROWSER_MCP_HUMANIZE` — `0` disables human-like UA, locale, and input timing.
+- `BROWSER_MCP_USER_AGENT` — override the generated Chrome user agent.
+- `BROWSER_MCP_LOCALE` — override locale for `navigator.language` and `Accept-Language`.
+- `BROWSER_MCP_TIMEZONE` — override the IANA timezone.
+- `BROWSER_MCP_ALLOWED_HOSTS` — optional comma-separated host allowlist.
+- `BROWSER_MCP_USER_DATA_DIR` — persistent browser profile (sensitive).
+- `BROWSER_MCP_NO_SANDBOX` — `1` forces `--no-sandbox`; avoid unless required.
 - `CORS_ORIGIN` — comma-separated allowed origins; defaults to localhost and
   127.0.0.1 origins.
 - `CONFIG_LOCATION` — path to the proxy config (default `secrets/back.json`).
@@ -293,11 +423,18 @@ Environment overrides:
       `secrets/back.json` override the client request.
 - [ ] The local folder MCP server remains read-only, asks for every new folder,
       and either uses stdio or binds its HTTP mode to `127.0.0.1` only.
+- [ ] The browser MCP server accepts only http(s) navigation and either uses
+      stdio or binds its HTTP mode to `127.0.0.1` only.
+- [ ] The browser MCP HTTP endpoint requires `Authorization: Bearer` when
+      `MCP_BROWSER_TOKEN` is set, and works without a token by default.
 - [ ] HTTP mode prints the endpoint in the documented form.
 - [ ] The proxy and development server bind to loopback only.
 - [ ] Client `system`/`developer` messages and tool fields are dropped by the
       proxy.
 - [ ] No secret is present in tracked files.
+- [ ] Every new local tool has a Linux-buildable Windows installer under
+      `build/windows/<tool>/`, or a documented reason why it cannot be packaged.
+- [ ] New Windows builds are wired into `build/windows/Makefile`.
 - [ ] New configuration and usage are documented in `README.md`.
 - [ ] Model output is written with `textContent`, never injected as HTML.
 - [ ] The change still works without the local proxy (for example against an

@@ -4,12 +4,35 @@ import path from "node:path";
 
 import type { ProfileCandidate } from "./types.js";
 
-const PROFILE_BASE_DIRS = [
-  "~/.thunderbird",
-  "~/snap/thunderbird/common/.thunderbird",
-  "~/.var/app/org.mozilla.Thunderbird/.thunderbird",
-  "~/.mozilla-thunderbird",
-];
+export function profileBaseDirs({
+  platform = process.platform,
+  appData = process.env.APPDATA,
+  home = homedir(),
+}: {
+  platform?: NodeJS.Platform;
+  appData?: string;
+  home?: string;
+} = {}): string[] {
+  const dirs = [
+    path.join(home, ".thunderbird"),
+    path.join(home, "snap", "thunderbird", "common", ".thunderbird"),
+    path.join(
+      home,
+      ".var",
+      "app",
+      "org.mozilla.Thunderbird",
+      ".thunderbird",
+    ),
+    path.join(home, ".mozilla-thunderbird"),
+  ];
+  if (appData) dirs.push(path.join(appData, "Thunderbird"));
+  if (platform === "darwin") {
+    dirs.push(path.join(home, "Library", "Thunderbird"));
+  }
+  return dirs;
+}
+
+const PROFILE_BASE_DIRS = profileBaseDirs();
 
 export class UserError extends Error {
   constructor(message: string) {

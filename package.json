@@ -14,7 +14,12 @@
     "mcp:crm": "node tools/crm-mcp/dist/index.js --http",
     "mcp:crm:http": "node tools/crm-mcp/dist/index.js --http",
     "mcp:crm:stdio": "node tools/crm-mcp/dist/index.js",
-    "build:windows": "node build/windows/build-sea.mjs"
+    "mcp:browser": "node tools/browser-mcp/server.mjs --http",
+    "mcp:browser:http": "node tools/browser-mcp/server.mjs --http",
+    "mcp:browser:stdio": "node tools/browser-mcp/server.mjs",
+    "build:windows": "node build/windows/local-folder-mcp/build-sea.mjs",
+    "build:browser:windows": "bash build/windows/browser-mcp/build-installer.sh",
+    "build:thunderbird:windows": "bash build/windows/thunderbird-mcp/build-installer.sh"
   },
   "engines": {
     "node": ">=18"

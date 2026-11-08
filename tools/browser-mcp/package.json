@@ -1,0 +1,30 @@
+{
+  "name": "browser-mcp",
+  "version": "0.1.0",
+  "description": "Local MCP server for headless web browsing: open pages, read content, click, type, and screenshot",
+  "main": "server.mjs",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs --http",
+    "stdio": "node server.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "browser",
+    "puppeteer",
+    "headless",
+    "automation"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "puppeteer-core": "^25.16.0"
+  },
+  "files": [
+    "browser.mjs",
+    "server.mjs",
+    "README.md"
+  ]
+}
