@@ -268,6 +268,19 @@ that controls the user's own browser. Its invariants:
 - When changing the server or extension, update
   `tools/chromium-mcp/README.md` and the root README.
 
+`tools/crm-mcp/` also renders local HTML timeline reports:
+
+- Escape every CRM field before interpolation. Never put raw names, notes, or
+  message bodies into HTML.
+- Writing a report file requires native confirmation and inserts an audit-log
+  entry. The audit entry stores the filename only.
+- Reports default to `./reports` relative to the server working directory.
+  `CRM_REPORT_DIR` overrides it. The server may create that configured report
+  directory with mode `0700`, but must not create missing parents for an
+  arbitrary `output_path`.
+- Tool results return only the report filename, never an absolute or full path.
+- Reports are self-contained: no external assets, scripts, or network requests.
+
 ## Linux packaging
 
 Every Linux-packaged tool has its own subfolder under `build/linux/<tool>/`.

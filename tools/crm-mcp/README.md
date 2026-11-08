@@ -31,6 +31,7 @@ npm run build
 ```bash
 make                 # build and run HTTP on 127.0.0.1:8766 with ./crm.db
 make start DB=~/crm/crm.db
+make start OUTPUT=~/crm-reports
 make status
 make stop
 make restart
@@ -38,7 +39,10 @@ make backup
 ```
 
 `make start` runs in the foreground. Pass `PASSWORD=...` to set the HTTP bearer
-password, `PORT=...` to change the port, or `DEBUG=1` for debug logging.
+password, `PORT=...` to change the port, `DEBUG=1` for debug logging, or
+`OUTPUT=/path/to/reports` to override the default report directory. Without
+`OUTPUT`, reports go to `./reports`. The Makefile creates an explicit `OUTPUT`
+directory if needed and passes it as `CRM_REPORT_DIR`.
 
 ### stdio
 
@@ -93,6 +97,7 @@ serve Chat AI over HTTP on localhost/127.0.0.1 when testing.
 | `--token <token>` | `CRM_MCP_TOKEN` | HTTP bearer token; defaults to the bearer password. |
 | `--cors-origin <list>` | `CRM_MCP_CORS_ORIGIN` | Comma-separated allowed browser origins. |
 | `--debug` | `CRM_MCP_DEBUG=1` | Log tool calls and errors to stderr. |
+| | `CRM_REPORT_DIR` | Default directory for `generate_timeline_html` reports when `output_path` is omitted; defaults to `./reports`. `make start OUTPUT=...` sets it. |
 
 ## Confirmation and audit
 
@@ -126,6 +131,7 @@ session.
 | `move_deal_stage` | Validated stage transition; logs a note activity. |
 | `log_activity` | Note, call, email, or meeting linked to an entity. |
 | `list_activities` | Paginated timeline with entity, type, and date filters. |
+| `generate_timeline_html` | Self-contained HTML timeline for a deal, contact, or company; writes to `./reports` by default and returns the filename. |
 | `create_task` / `complete_task` | Task management with due dates. |
 | `pipeline_summary` | Counts, totals, and weighted value by stage and currency. |
 | `add_tags` / `remove_tags` | Tags for contacts, companies, or deals. |
@@ -133,6 +139,52 @@ session.
 | `list_session_approvals` | Current session approvals. |
 
 List tools are capped at 100 rows and return `next_offset`.
+
+## HTML timeline reports
+
+`generate_timeline_html` renders a self-contained HTML page for one deal,
+contact, or company. It includes the record details, a summary, and a visual
+timeline of every linked activity with the full message/body text.
+
+```json
+{
+  "entity_type": "deal",
+  "entity_id": "0190e2c4-...",
+  "max_activities": 1000
+}
+```
+
+The page is written to the report directory:
+
+- `CRM_REPORT_DIR` when set, otherwise `./reports` (relative to the server
+  working directory).
+- The default report directory is created with mode `0700` on first use.
+- An explicit `output_path` overrides the directory and must point into an
+  existing directory; the server does not create missing parents for it.
+
+The tool result contains only the relative filename, never a full path:
+
+```json
+{
+  "entity_type": "deal",
+  "entity_id": "0190e2c4-...",
+  "title": "Acme renewal",
+  "activity_count": 12,
+  "truncated": false,
+  "filename": "timeline-deal-acme-renewal.html",
+  "saved": true,
+  "bytes": 48213,
+  "used_default_dir": true
+}
+```
+
+Every write asks for native confirmation, uses file mode `0600`, and records the
+action in the audit log. The audit entry stores the filename only, not the full
+path.
+
+The page has no external assets, scripts, or network requests. Every name, note,
+and message body is HTML-escaped. Reports include up to `max_activities` entries
+(default 1000, maximum 5000) and show a warning when the history was truncated.
 
 ## Resources and prompts
 

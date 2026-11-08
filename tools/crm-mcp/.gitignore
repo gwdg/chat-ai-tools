@@ -10,3 +10,4 @@ crm-backup-*.db
 .env.*
 !.env.example
 .crm-mcp.pid
+reports/

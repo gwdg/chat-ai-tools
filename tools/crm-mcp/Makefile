@@ -9,6 +9,7 @@ DB ?= $(CURDIR)/crm.db
 ACTOR ?= mcp-client
 PASSWORD ?=
 DEBUG ?= 0
+OUTPUT ?=
 
 ENTRY := $(CURDIR)/dist/index.js
 PIDFILE := $(CURDIR)/.crm-mcp.pid
@@ -24,7 +25,7 @@ endif
 .PHONY: help start stop restart build typecheck test status backup clean
 
 help:
-	@echo "Usage: make <target> [PORT=8766] [DB=/path/to/crm.db] [PASSWORD=secret] [DEBUG=1]"
+	@echo "Usage: make <target> [PORT=8766] [DB=/path/to/crm.db] [PASSWORD=secret] [DEBUG=1] [OUTPUT=/path/to/reports]"
 	@echo
 	@echo "  start    Build, then run the CRM HTTP server in the foreground (default)"
 	@echo "  stop     Stop a server started by this Makefile or listening on PORT"
@@ -38,6 +39,7 @@ help:
 	@echo
 	@echo "Default database: $(DB)"
 	@echo "Default endpoint: http://$(HOST):$(PORT)/mcp"
+	@echo "Default report directory: $(if $(OUTPUT),$(OUTPUT),./reports)"
 
 start: build
 	@if [ -f "$(PIDFILE)" ] && kill -0 "$$(cat "$(PIDFILE)")" 2>/dev/null; then \
@@ -48,11 +50,17 @@ start: build
 		echo "crm-mcp already responds on http://$(HOST):$(PORT)/mcp; run 'make stop' first"; \
 		exit 0; \
 	fi
+	@if [ -n "$(OUTPUT)" ]; then \
+		dir="$(OUTPUT)"; \
+		if [ "$${dir:0:1}" = "~" ]; then dir="$$HOME$${dir:1}"; fi; \
+		mkdir -p -m 700 "$$dir" && echo "Report directory: $$dir"; \
+	fi
 	@echo "Starting crm-mcp on http://$(HOST):$(PORT)/mcp"
 	@echo "Database: $(DB)"
+	@echo "Report directory: $(if $(OUTPUT),$(OUTPUT),./reports)"
 	@echo "Press Ctrl-C to stop."
 	@echo $$$$ > "$(PIDFILE)"
-	@exec $(NODE) "$(ENTRY)" $(FLAGS)
+	@CRM_REPORT_DIR="$(OUTPUT)" exec $(NODE) "$(ENTRY)" $(FLAGS)
 
 stop:
 	@if [ -f "$(PIDFILE)" ]; then \

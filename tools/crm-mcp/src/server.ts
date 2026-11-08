@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import {
   McpServer,
   ResourceTemplate,
@@ -12,11 +14,18 @@ import type {
 import type { AuditMeta, CrmStore } from "./store.js";
 import { SCHEMA_DOCUMENT } from "./db.js";
 import { UserError } from "./errors.js";
+import {
+  renderTimelineHtml,
+  timelineFilename,
+  timelineTitle,
+  writeTimelineReport,
+} from "./report.js";
 
 export interface ServerOptions {
   store: CrmStore;
   confirmAction?: ConfirmationDialog;
   actor?: string;
+  reportDir?: string;
 }
 
 const SERVER_NAME = "crm-mcp";
@@ -88,6 +97,12 @@ function choiceMeta(choice: ConfirmationChoice, actor: string): AuditMeta {
 export function createServer(options: ServerOptions): McpServer {
   const store = options.store;
   const actor = options.actor || process.env.CRM_ACTOR || "mcp-client";
+  const configuredReportDir = (
+    options.reportDir ??
+    process.env.CRM_REPORT_DIR ??
+    ""
+  ).trim();
+  const defaultReportDir = configuredReportDir || "./reports";
   const approvals = new ActionApprovals(options.confirmAction);
   const server = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
@@ -612,6 +627,77 @@ export function createServer(options: ServerOptions): McpServer {
       guard("list_activities", args, () => {
         const result = store.listActivities(args);
         return { activities: result.items, next_offset: result.next_offset };
+      }),
+  );
+
+  server.registerTool(
+    "generate_timeline_html",
+    {
+      title: "Generate timeline HTML",
+      description:
+        "Render a self-contained HTML timeline for a deal, contact, or company, including every linked activity and its message body. Writes the page to the report directory (./reports by default) or output_path, requires native confirmation, and returns only the filename.",
+      inputSchema: {
+        entity_type: z.enum(["deal", "contact", "company"]),
+        entity_id: z.string().min(1),
+        output_path: z.string().optional(),
+        max_activities: z.number().int().min(1).max(5000).default(1000),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (args) =>
+      guard("generate_timeline_html", args, async () => {
+        const report = store.timelineReport(
+          args.entity_type,
+          args.entity_id,
+          args.max_activities,
+        );
+        const html = renderTimelineHtml(report);
+        const filename = timelineFilename(report);
+        const summary = {
+          entity_type: args.entity_type,
+          entity_id: args.entity_id,
+          title: timelineTitle(report),
+          activity_count: report.activities.length,
+          truncated: Boolean(report.truncated),
+        };
+        const requestedPath = args.output_path?.trim();
+        const outputPath =
+          requestedPath || path.join(defaultReportDir, filename);
+
+        const meta = await confirm(
+          `generate_timeline_html:${args.entity_type}:${args.entity_id}:${outputPath}`,
+          "write an HTML timeline report",
+          fieldLines({
+            entity: summary.title,
+            entity_type: args.entity_type,
+            entity_id: args.entity_id,
+            interactions: summary.activity_count,
+            output_path: outputPath,
+            default_report_dir: requestedPath ? undefined : defaultReportDir,
+          }),
+        );
+        const savedPath = writeTimelineReport(outputPath, html, {
+          createParentDir: !requestedPath,
+        });
+        const savedFilename = path.basename(savedPath);
+        store.recordReport(
+          args.entity_type,
+          args.entity_id,
+          savedFilename,
+          meta,
+        );
+        return {
+          ...summary,
+          filename: savedFilename,
+          saved: true,
+          bytes: Buffer.byteLength(html, "utf8"),
+          used_default_dir: !requestedPath,
+        };
       }),
   );
 

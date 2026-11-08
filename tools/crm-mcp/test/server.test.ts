@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -7,7 +10,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { openDatabase } from "../src/db.js";
 import type { ConfirmationRequest } from "../src/dialog.js";
-import { createServer } from "../src/server.js";
+import { createServer, type ServerOptions } from "../src/server.js";
 import { CrmStore } from "../src/store.js";
 
 interface TestConnection {
@@ -19,8 +22,14 @@ interface TestConnection {
 async function connect(
   store: CrmStore,
   confirmAction = async () => "session" as const,
+  serverOptions: Partial<ServerOptions> = {},
 ): Promise<TestConnection> {
-  const server = createServer({ store, confirmAction, actor: "test" });
+  const server = createServer({
+    ...serverOptions,
+    store,
+    confirmAction,
+    actor: "test",
+  });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);
   const client = new Client({ name: "crm-mcp-tests", version: "0.1.0" });
@@ -59,6 +68,7 @@ test("exposes CRM tools, resources, and prompts", async () => {
       "create_contact",
       "create_deal",
       "create_task",
+      "generate_timeline_html",
       "get_company",
       "get_contact",
       "get_deal",
@@ -189,5 +199,223 @@ test("denied writes leave the database and audit log unchanged", async () => {
   } finally {
     await connection.close();
     db.close();
+  }
+});
+
+test("generates and saves HTML timeline reports", async () => {
+  const db = openDatabase(":memory:");
+  const store = new CrmStore(db, "test");
+  const directory = mkdtempSync(path.join(tmpdir(), "crm-report-"));
+  const reportDir = path.join(directory, "reports");
+  const connection = await connect(store, undefined, { reportDir });
+  try {
+    const company = payload(
+      await connection.client.callTool({
+        name: "create_company",
+        arguments: { name: "Acme", domain: "acme.test" },
+      }),
+    );
+    const contact = payload(
+      await connection.client.callTool({
+        name: "create_contact",
+        arguments: {
+          first_name: "Ada",
+          last_name: "Lovelace",
+          email: "ada@example.com",
+          company_id: company.company.id,
+        },
+      }),
+    );
+    const deal = payload(
+      await connection.client.callTool({
+        name: "create_deal",
+        arguments: {
+          name: "Renewal",
+          company_id: company.company.id,
+          primary_contact_id: contact.contact.id,
+          amount_cents: 1234500,
+          currency: "EUR",
+          stage: "proposal",
+        },
+      }),
+    );
+
+    await connection.client.callTool({
+      name: "log_activity",
+      arguments: {
+        type: "email",
+        subject: "Kickoff",
+        body: "Hello <script>alert(1)</script>\nSecond line",
+        contact_id: contact.contact.id,
+        company_id: company.company.id,
+        deal_id: deal.deal.id,
+        occurred_at: "2026-01-02T10:00:00Z",
+      },
+    });
+    await connection.client.callTool({
+      name: "log_activity",
+      arguments: {
+        type: "call",
+        subject: "Follow-up",
+        body: "Discussed terms",
+        deal_id: deal.deal.id,
+        occurred_at: "2026-01-03T11:00:00Z",
+      },
+    });
+
+    const report = payload(
+      await connection.client.callTool({
+        name: "generate_timeline_html",
+        arguments: { entity_type: "deal", entity_id: deal.deal.id },
+      }),
+    );
+    assert.equal(report.activity_count, 2);
+    assert.equal(report.saved, true);
+    assert.equal(report.filename, "timeline-deal-renewal.html");
+    assert.equal(report.saved_path, undefined);
+    assert.equal(report.html, undefined);
+    assert.ok(!JSON.stringify(report).includes(directory));
+
+    const reportPath = path.join(reportDir, report.filename);
+    const reportHtml = readFileSync(reportPath, "utf8");
+    assert.match(reportHtml, /Renewal/);
+    assert.match(reportHtml, /Kickoff/);
+    assert.match(reportHtml, /Discussed terms/);
+    assert.match(reportHtml, /Second line/);
+    assert.doesNotMatch(reportHtml, /<script>alert/);
+    assert.match(reportHtml, /&lt;script&gt;alert/);
+
+    const output = path.join(directory, "deal-report.html");
+    const saved = payload(
+      await connection.client.callTool({
+        name: "generate_timeline_html",
+        arguments: {
+          entity_type: "deal",
+          entity_id: deal.deal.id,
+          output_path: output,
+        },
+      }),
+    );
+    assert.equal(saved.filename, "deal-report.html");
+    assert.equal(saved.saved_path, undefined);
+    assert.equal(saved.used_default_dir, false);
+    assert.ok(saved.bytes > 1000);
+    assert.match(readFileSync(output, "utf8"), /Discussed terms/);
+
+    const audit = payload(
+      await connection.client.callTool({
+        name: "list_audit_log",
+        arguments: { action: "generate_timeline_html" },
+      }),
+    );
+    assert.equal(audit.items.length, 2);
+    assert.ok(
+      audit.items.every((item: any) => item.entity_id === deal.deal.id),
+    );
+    assert.deepEqual(
+      audit.items.map((item: any) => item.after.filename).sort(),
+      ["deal-report.html", "timeline-deal-renewal.html"],
+    );
+    assert.ok(
+      audit.items.every((item: any) => !JSON.stringify(item).includes(directory)),
+    );
+
+    const companyReport = payload(
+      await connection.client.callTool({
+        name: "generate_timeline_html",
+        arguments: { entity_type: "company", entity_id: company.company.id },
+      }),
+    );
+    assert.match(
+      readFileSync(path.join(reportDir, companyReport.filename), "utf8"),
+      /Acme/,
+    );
+
+    const contactReport = payload(
+      await connection.client.callTool({
+        name: "generate_timeline_html",
+        arguments: { entity_type: "contact", entity_id: contact.contact.id },
+      }),
+    );
+    const contactHtml = readFileSync(
+      path.join(reportDir, contactReport.filename),
+      "utf8",
+    );
+    assert.match(contactHtml, /Ada/);
+    assert.match(contactHtml, /Lovelace/);
+  } finally {
+    await connection.close();
+    db.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("writes reports to the configured default directory", async () => {
+  const db = openDatabase(":memory:");
+  const store = new CrmStore(db, "test");
+  const directory = mkdtempSync(path.join(tmpdir(), "crm-report-dir-"));
+  const reportDir = path.join(directory, "nested", "reports");
+  const connection = await connect(store, undefined, { reportDir });
+  try {
+    const company = payload(
+      await connection.client.callTool({
+        name: "create_company",
+        arguments: { name: "Default Dir Co" },
+      }),
+    );
+
+    const report = payload(
+      await connection.client.callTool({
+        name: "generate_timeline_html",
+        arguments: {
+          entity_type: "company",
+          entity_id: company.company.id,
+        },
+      }),
+    );
+    assert.equal(report.used_default_dir, true);
+    assert.equal(report.filename, "timeline-company-default-dir-co.html");
+    assert.equal(report.saved_path, undefined);
+    assert.equal(report.html, undefined);
+    assert.match(
+      readFileSync(path.join(reportDir, report.filename), "utf8"),
+      /Default Dir Co/,
+    );
+
+    const explicit = path.join(directory, "explicit.html");
+    const overridden = payload(
+      await connection.client.callTool({
+        name: "generate_timeline_html",
+        arguments: {
+          entity_type: "company",
+          entity_id: company.company.id,
+          output_path: explicit,
+        },
+      }),
+    );
+    assert.equal(overridden.filename, "explicit.html");
+    assert.equal(overridden.saved_path, undefined);
+    assert.equal(overridden.used_default_dir, false);
+    assert.ok(readFileSync(explicit, "utf8").includes("Default Dir Co"));
+
+    const missing = path.join(directory, "missing", "report.html");
+    const failed = await connection.client.callTool({
+      name: "generate_timeline_html",
+      arguments: {
+        entity_type: "company",
+        entity_id: company.company.id,
+        output_path: missing,
+      },
+    });
+    assert.equal(failed.isError, true);
+    const failureText = (failed.content as Array<{ type: string; text?: string }>)
+      .map((item) => item.text ?? "")
+      .join("\n");
+    assert.match(failureText, /report directory does not exist/i);
+    assert.ok(!failureText.includes(directory));
+  } finally {
+    await connection.close();
+    db.close();
+    rmSync(directory, { recursive: true, force: true });
   }
 });

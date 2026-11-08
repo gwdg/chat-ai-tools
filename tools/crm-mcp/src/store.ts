@@ -595,6 +595,60 @@ export class CrmStore {
     };
   }
 
+  timelineReport(
+    entityType: EntityType,
+    id: string,
+    maxActivities = 1000,
+  ): Row {
+    const limit = Math.min(5000, Math.max(1, Math.trunc(maxActivities)));
+    let base: Row;
+    if (entityType === "deal") base = this.getDeal(id);
+    else if (entityType === "contact") base = this.getContact(id);
+    else base = this.getCompany(id);
+
+    const column =
+      entityType === "deal"
+        ? "a.deal_id"
+        : entityType === "contact"
+          ? "a.contact_id"
+          : "a.company_id";
+    const rows = this.all(
+      `SELECT a.*, c.first_name || ' ' || coalesce(c.last_name,'') AS contact_name,
+              co.name AS company_name, d.name AS deal_name
+         FROM activities a
+         LEFT JOIN contacts c ON c.id = a.contact_id
+         LEFT JOIN companies co ON co.id = a.company_id
+         LEFT JOIN deals d ON d.id = a.deal_id
+        WHERE ${column} = ?
+        ORDER BY coalesce(a.occurred_at, a.created_at) DESC, a.created_at DESC
+        LIMIT ?`,
+      [id, limit + 1],
+    );
+
+    const truncated = rows.length > limit;
+    const activities = rows.slice(0, limit).map(activityView);
+    delete base.recent_activities;
+    return {
+      entity_type: entityType,
+      generated_at: new Date().toISOString(),
+      ...base,
+      activities,
+      activity_count: activities.length,
+      truncated,
+    };
+  }
+
+  recordReport(
+    entityType: EntityType,
+    entityId: string,
+    filename: string,
+    meta: AuditMeta,
+  ): void {
+    this.audit(meta, "generate_timeline_html", entityType, entityId, null, {
+      filename,
+    });
+  }
+
   createCompany(
     input: {
       name: string;

@@ -423,6 +423,13 @@ npm run build
 node dist/index.js --http --port 8766 --db ~/crm/crm.db
 ```
 
+`generate_timeline_html` renders a self-contained timeline page for a deal,
+contact, or company, including every linked activity and its message body. It
+writes the page to `./reports` by default, after native confirmation, and adds
+the write to the audit log. The tool returns only the relative filename, never
+the full path. Use `make start OUTPUT=~/crm-reports` in `tools/crm-mcp/` to
+override the default directory.
+
 See [tools/crm-mcp/README.md](tools/crm-mcp/README.md) and
 [RUNNING.md](tools/crm-mcp/RUNNING.md).
 
