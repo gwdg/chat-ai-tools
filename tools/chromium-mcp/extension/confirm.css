@@ -1,0 +1,173 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: #f4f6f8;
+  color: #1b1f23;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    background: #161a1d;
+    color: #e8eaed;
+  }
+  .card {
+    background: #202529;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+  }
+  .details,
+  .warning {
+    background: #1a1f23;
+  }
+  .mono {
+    color: #b8c0c8;
+  }
+  button.secondary {
+    background: #2a3036;
+    color: #e8eaed;
+    border-color: #3b434b;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 16px;
+  min-height: 100vh;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px 20px 16px;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 12%);
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 19px;
+  line-height: 1.25;
+}
+
+.purpose {
+  margin: 0 0 12px;
+  font-weight: 600;
+}
+
+.details {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f6f8fa;
+  font-size: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .details {
+    background: #1a1f23;
+  }
+}
+
+dt {
+  font-weight: 700;
+  opacity: 0.6;
+  margin-top: 6px;
+}
+
+dt:first-child {
+  margin-top: 0;
+}
+
+dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: #4b5563;
+}
+
+.warning {
+  margin: 0 0 12px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: #fff7e6;
+  border: 1px solid #f0c36d;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media (prefers-color-scheme: dark) {
+  .warning {
+    background: #332a16;
+    border-color: #6b5423;
+  }
+}
+
+.error {
+  margin: 0 0 12px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: #fdecec;
+  border: 1px solid #f2b8b5;
+  color: #8a1f1f;
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.primary {
+  background: #2563eb;
+  color: #fff;
+}
+
+.secondary {
+  background: #eef1f4;
+  color: #1b1f23;
+  border-color: #d5dbe1;
+}
+
+.hint {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  opacity: 0.65;
+}

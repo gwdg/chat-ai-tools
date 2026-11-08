@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Chat AI Browser Control (MCP)",
+  "version": "0.1.0",
+  "description": "Lets a local MCP client control this Chromium browser. Every tab requires your approval.",
+  "minimum_chrome_version": "116",
+  "permissions": ["tabs", "scripting", "storage", "alarms"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Chat AI Browser Control",
+    "default_popup": "popup.html"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
+}

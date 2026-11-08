@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chat AI Browser Control settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="card">
+      <h1>Chat AI Browser Control</h1>
+      <p class="intro">
+        This extension connects to a local MCP relay. The relay lets Chat AI ask
+        for browser access; you approve every tab in a confirmation window.
+      </p>
+
+      <form id="form">
+        <label>
+          Relay WebSocket URL
+          <input
+            id="relayUrl"
+            name="relayUrl"
+            type="text"
+            placeholder="ws://127.0.0.1:8766/extension"
+            spellcheck="false"
+          />
+        </label>
+
+        <label>
+          Extension token (optional)
+          <input
+            id="extensionToken"
+            name="extensionToken"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Only if the relay sets MCP_CHROMIUM_EXTENSION_TOKEN"
+          />
+        </label>
+
+        <div class="actions">
+          <button id="save" type="submit">Save and connect</button>
+          <button id="disconnect" type="button" class="secondary">
+            Disconnect
+          </button>
+        </div>
+      </form>
+
+      <section class="status-box">
+        <h2>Status</h2>
+        <p id="status">Checking…</p>
+      </section>
+
+      <section class="help">
+        <h2>Setup</h2>
+        <ol>
+          <li>Start the relay: <code>npm run mcp:chromium</code>.</li>
+          <li>
+            It prints the extension WebSocket URL, normally
+            <code>ws://127.0.0.1:8766/extension</code>.
+          </li>
+          <li>Paste that URL above and choose Save and connect.</li>
+          <li>
+            Add the printed MCP endpoint to Chat AI:
+            <code>http://127.0.0.1:8766/mcp</code>.
+          </li>
+        </ol>
+        <p>
+          If the relay sets <code>MCP_CHROMIUM_TOKEN</code>, configure Chat AI to
+          send <code>Authorization: Bearer &lt;token&gt;</code>. That token is
+          separate from the optional extension token above.
+        </p>
+      </section>
+
+      <p class="warning">
+        The extension can read and control tabs only after you approve each tab.
+        Session approvals are stored in memory for the current browser session
+        and can be revoked from the toolbar popup.
+      </p>
+    </main>
+    <script src="options.js" type="module"></script>
+  </body>
+</html>

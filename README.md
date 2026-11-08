@@ -20,9 +20,12 @@ configuration without copying the whole Chat AI front end.
 | `tools/thunderbird-mcp/` | Local Thunderbird MCP server + privileged extension; native mailbox access and action confirmation dialogs |
 | `tools/crm-mcp/` | Local-first CRM MCP server backed by SQLite; native write confirmation and audit log |
 | `tools/browser-mcp/` | Local MCP server for headless Chrome: open and read pages, click, type, scroll, and screenshot |
+| `tools/chromium-mcp/` | Chromium extension + local MCP relay for controlling the user's browser with per-tab consent |
 | `build/windows/local-folder-mcp/` | Standalone Windows executable (Node SEA) and Inno Setup installer |
 | `build/windows/browser-mcp/` | Linux cross-build for the browser MCP Windows executable and NSIS installer |
 | `build/windows/thunderbird-mcp/` | Linux cross-build for the Thunderbird MCP Windows executable, extension XPI, and NSIS installer |
+| `build/windows/chromium-mcp/` | Linux cross-build for the Chromium MCP relay Windows executable and NSIS installer |
+| `build/linux/chromium-mcp/` | Linux packaging for the Chromium extension (ZIP and optional CRX) |
 | `README-Windows.txt` | Complete Windows build, install, and troubleshooting guide |
 | `assets/eu-ai-icons/` | Official EU “fully AI-generated” badge, black and white variants |
 | `scripts/serve.mjs` | Static server for local development |
@@ -485,6 +488,52 @@ details.
 See [tools/browser-mcp/README.md](tools/browser-mcp/README.md) for all tools,
 configuration, and security notes.
 
+## Chromium browser control
+
+`tools/chromium-mcp/` controls the Chromium/Chrome/Edge browser you are already
+using. It has two parts:
+
+```
+Chat AI -- HTTP /mcp --> chromium-mcp relay -- WebSocket --> Chromium extension --> tabs
+```
+
+Start the relay:
+
+```bash
+cd tools/chromium-mcp && npm install
+npm start
+# or from the repository root:
+npm run mcp:chromium
+# or use the tool Makefile:
+make -C tools/chromium-mcp
+```
+
+It prints `http://127.0.0.1:8766/mcp` and
+`ws://127.0.0.1:8766/extension`.
+
+Load `tools/chromium-mcp/extension/` as an unpacked extension in
+`chrome://extensions`, open its options, and connect it to the printed
+WebSocket URL. Then add `http://127.0.0.1:8766/mcp` to Chat AI.
+
+Every read or action on a tab opens a confirmation window in the browser. Choose
+**Allow once**, **Allow for session**, or **Deny**. Session grants are kept in
+memory for the browser session and can be revoked from the extension popup; a
+tab must be approved again if it navigates to another site. Tabs that are not
+approved hide their title and URL from `browser_tabs`.
+
+See [tools/chromium-mcp/README.md](tools/chromium-mcp/README.md) for the full
+tool list, configuration, and security notes.
+
+Package the extension on Linux:
+
+```bash
+make -C build/linux        # Web Store ZIP
+make -C build/linux crx    # signed CRX (key stored in build/linux/chromium-mcp/.keys/)
+```
+
+Windows executables and an NSIS installer can be built on Linux under
+`build/windows/chromium-mcp/`.
+
 ## Direct SAIA access
 
 For a direct connection, set:
@@ -511,9 +560,13 @@ npm run mcp:folder        # local folder MCP server over HTTP
 npm run mcp:folder:stdio  # local folder MCP server over stdio
 npm run mcp:browser       # headless browser MCP server over HTTP
 npm run mcp:browser:stdio # headless browser MCP server over stdio
+npm run mcp:chromium      # Chromium browser-control relay over HTTP
+npm run mcp:chromium:stdio # Chromium relay over stdio (extension still uses the WebSocket port)
 npm run build:browser:windows     # Windows exe + installer from Linux (needs nsis)
 npm run build:thunderbird:windows # Windows exe + installer + extension XPI from Linux
+npm run build:chromium:windows    # Chromium relay exe + installer + extension from Linux
 make -C build/windows             # build every Windows package this host supports
+make -C build/linux               # Chromium extension ZIP (make ... crx for CRX)
 ```
 
 Environment overrides:

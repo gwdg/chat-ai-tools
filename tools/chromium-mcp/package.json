@@ -1,0 +1,31 @@
+{
+  "name": "chromium-mcp",
+  "version": "0.1.0",
+  "description": "Local MCP relay for controlling a Chromium browser through an extension with per-tab user consent",
+  "type": "module",
+  "main": "relay.mjs",
+  "scripts": {
+    "start": "node relay.mjs --http",
+    "stdio": "node relay.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "chromium",
+    "chrome",
+    "extension",
+    "browser"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ws": "^8.22.1"
+  },
+  "files": [
+    "relay.mjs",
+    "extension",
+    "README.md"
+  ]
+}

@@ -34,6 +34,7 @@ chat-ai-tools/
 ├── tools/thunderbird-mcp/     Thunderbird MCP server + privileged extension
 ├── tools/crm-mcp/             Local-first CRM MCP server backed by SQLite
 ├── tools/browser-mcp/         Headless Chrome MCP server (puppeteer-core)
+├── tools/chromium-mcp/        Chromium extension + relay for controlling the user's browser
 ├── assets/eu-ai-icons/        Official EU fully AI-generated badge (black/white)
 ├── scripts/serve.mjs          Static server for local development
 ├── tests/                     node:test suites
@@ -236,6 +237,57 @@ local HTTP transports. Its invariants:
 - When changing the server, update `tools/browser-mcp/README.md` and the root
   README.
 
+`tools/chromium-mcp/` is a local MCP relay plus a Manifest V3 Chromium extension
+that controls the user's own browser. Its invariants:
+
+- **Local only.** The MCP HTTP endpoint and extension WebSocket bind to
+  `127.0.0.1`. Refuse non-loopback `HOST` values.
+- **Confirmation for every tab access.** Every tool that reads or controls a tab
+  must call the extension's tab-access check first. The extension opens a
+  confirmation window with Allow once, Allow for session, and Deny. Do not add
+  an auto-allow path, bulk approval, or a hidden bypass.
+- **Session grants are volatile and scoped.** Store them in
+  `chrome.storage.session`, keyed by tab id and origin. Do not write them to
+  disk. Revoke on tab removal and expose a revoke action in the extension popup.
+  A tab that navigates to another origin requires a new confirmation.
+- **Do not leak unapproved tabs.** `browser_tabs` must not return titles or URLs
+  for tabs that are not approved for the session.
+- **Extension origin and tokens.** WebSocket upgrades must come from a
+  `chrome-extension://` origin unless `MCP_CHROMIUM_EXTENSION_TOKEN` is set and
+  the hello token matches. MCP Bearer auth is optional via
+  `MCP_CHROMIUM_TOKEN`; compare tokens in constant time.
+- **http(s) only.** Navigation and control are limited to http/https tabs.
+  `chrome://`, `edge://`, `about:`, `file:`, and other schemes are rejected.
+- **DOM actions, not trusted input.** Clicking and typing use synthetic DOM
+  events; do not claim CAPTCHA solving or trusted OS-level input. Page CSP may
+  block `browser_evaluate`.
+- **One browser connection.** A newer extension connection replaces the older
+  one. Do not silently multiplex commands across browsers.
+- Tests must not require Chrome. Cover the relay, URL policy, and grant keys;
+  document that the confirmation window requires manual browser testing.
+- When changing the server or extension, update
+  `tools/chromium-mcp/README.md` and the root README.
+
+## Linux packaging
+
+Every Linux-packaged tool has its own subfolder under `build/linux/<tool>/`.
+`build/linux/Makefile` builds every package the host supports;
+`make -C build/linux` runs the `chromium` target.
+
+`build/linux/chromium-mcp/` validates and packages the Chromium extension:
+
+- `make -C build/linux/chromium-mcp` creates
+  `build/linux/chromium-mcp/out/chromium-mcp-extension.zip` with `manifest.json`
+  at the root, suitable for the Chrome Web Store or unpacked installation.
+- `make -C build/linux/chromium-mcp crx` uses Chrome/Chromium to create a signed
+  CRX. The generated key lives in `build/linux/chromium-mcp/.keys/` and must
+  stay private and be reused for updates.
+- `build/linux/chromium-mcp/out/` and `.keys/` are ignored by git. Never commit
+  a `.pem` key.
+- `CHROME`, `CHROME_FLAGS`, and `KEY` override the auto-detected browser, launch
+  flags, and signing key.
+- The relay itself needs no Linux build; run it with `npm run mcp:chromium`.
+
 ## Windows packaging
 
 Every packaged tool has its own subfolder under `build/windows/<tool>/`. New
@@ -317,6 +369,26 @@ The Thunderbird MCP server has a Linux cross-build under
 - Keep `build/windows/thunderbird-mcp/installer.nsi` and `installer-readme.txt`
   in sync with the server options, profile detection, and extension steps.
 
+The Chromium MCP relay has a Linux cross-build under
+`build/windows/chromium-mcp/`:
+
+- `build-installer.sh` downloads matching Linux and Windows Node.js runtimes,
+  bundles `relay.mjs` plus `ws` with esbuild, creates the SEA blob with the
+  Linux binary, injects it into the Windows `node.exe` with `postject`, copies
+  the unpacked extension, and compiles the NSIS installer with `makensis`.
+- The esbuild banner sets `MCP_SEA=1`. Keep the
+  `if (process.env.MCP_SEA === "1") main();` guard at the bottom of
+  `tools/chromium-mcp/relay.mjs`.
+- `npm run build:chromium:windows` runs the script. `ZIP_ONLY=1` skips NSIS;
+  `SKIP_TESTS=1` skips the pre-build tests.
+- Outputs are `chromium-mcp.exe`, `chromium-mcp-setup.exe`,
+  `chromium-mcp-windows.zip`, and `SHA256SUMS.txt` in
+  `build/windows/chromium-mcp/out/`. Do not commit `out/` or `.cache/`.
+- The extension is loaded unpacked from the installed `extension/` folder; the
+  installer does not silently modify the browser profile.
+- Keep `build/windows/chromium-mcp/installer.nsi` and `installer-readme.txt` in
+  sync with the relay options, confirmation model, and extension setup.
+
 ## Adding a tool or example
 
 Every new tool or example must be documented. A feature is not complete until:
@@ -375,9 +447,13 @@ npm run mcp:folder       # local folder MCP server over HTTP (prints endpoint)
 npm run mcp:folder:stdio # local folder MCP server over stdio
 npm run mcp:browser       # headless browser MCP server over HTTP (prints endpoint)
 npm run mcp:browser:stdio # headless browser MCP server over stdio
+npm run mcp:chromium      # Chromium control relay over HTTP (prints endpoint)
+npm run mcp:chromium:stdio # Chromium control relay over stdio
 npm run build:browser:windows # Windows exe + NSIS installer from Linux
 npm run build:thunderbird:windows # Windows exe + installer + extension XPI from Linux
+npm run build:chromium:windows # Chromium relay exe + installer + extension from Linux
 make -C build/windows             # build every Windows package this host supports
+make -C build/linux               # Chromium extension ZIP (add crx target for CRX)
 ```
 
 Environment overrides:
@@ -403,6 +479,15 @@ Environment overrides:
 - `BROWSER_MCP_ALLOWED_HOSTS` — optional comma-separated host allowlist.
 - `BROWSER_MCP_USER_DATA_DIR` — persistent browser profile (sensitive).
 - `BROWSER_MCP_NO_SANDBOX` — `1` forces `--no-sandbox`; avoid unless required.
+- `MCP_CHROMIUM_HTTP_PORT` — Chromium relay HTTP/WebSocket port (default `8766`).
+- `MCP_CHROMIUM_EXTENSION_PORT` — WebSocket-only port in stdio mode (default `8766`).
+- `MCP_CHROMIUM_CORS_ORIGIN` — comma-separated local origins for the relay HTTP
+  mode; defaults to localhost/127.0.0.1.
+- `MCP_CHROMIUM_TOKEN` — Bearer token required on `/mcp` when set (default: no
+  authentication).
+- `MCP_CHROMIUM_EXTENSION_TOKEN` — token required in the extension hello message
+  when set.
+- `MCP_CHROMIUM_COMMAND_TIMEOUT_MS` — browser command timeout (default `180000`).
 - `CORS_ORIGIN` — comma-separated allowed origins; defaults to localhost and
   127.0.0.1 origins.
 - `CONFIG_LOCATION` — path to the proxy config (default `secrets/back.json`).
@@ -427,6 +512,11 @@ Environment overrides:
       stdio or binds its HTTP mode to `127.0.0.1` only.
 - [ ] The browser MCP HTTP endpoint requires `Authorization: Bearer` when
       `MCP_BROWSER_TOKEN` is set, and works without a token by default.
+- [ ] The Chromium extension asks for Allow once / Allow for session / Deny on
+      every tab access, hides details of unapproved tabs, and can revoke session
+      grants.
+- [ ] Chromium WebSocket upgrades require a `chrome-extension://` origin (or the
+      configured extension token), and only http(s) tabs can be controlled.
 - [ ] HTTP mode prints the endpoint in the documented form.
 - [ ] The proxy and development server bind to loopback only.
 - [ ] Client `system`/`developer` messages and tool fields are dropped by the
@@ -435,6 +525,8 @@ Environment overrides:
 - [ ] Every new local tool has a Linux-buildable Windows installer under
       `build/windows/<tool>/`, or a documented reason why it cannot be packaged.
 - [ ] New Windows builds are wired into `build/windows/Makefile`.
+- [ ] The Chromium extension can be packaged on Linux with
+      `make -C build/linux` (ZIP) and `make -C build/linux crx`.
 - [ ] New configuration and usage are documented in `README.md`.
 - [ ] Model output is written with `textContent`, never injected as HTML.
 - [ ] The change still works without the local proxy (for example against an

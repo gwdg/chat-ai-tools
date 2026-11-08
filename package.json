@@ -17,9 +17,14 @@
     "mcp:browser": "node tools/browser-mcp/server.mjs --http",
     "mcp:browser:http": "node tools/browser-mcp/server.mjs --http",
     "mcp:browser:stdio": "node tools/browser-mcp/server.mjs",
+    "mcp:chromium": "node tools/chromium-mcp/relay.mjs --http",
+    "mcp:chromium:http": "node tools/chromium-mcp/relay.mjs --http",
+    "mcp:chromium:stdio": "node tools/chromium-mcp/relay.mjs",
     "build:windows": "node build/windows/local-folder-mcp/build-sea.mjs",
     "build:browser:windows": "bash build/windows/browser-mcp/build-installer.sh",
-    "build:thunderbird:windows": "bash build/windows/thunderbird-mcp/build-installer.sh"
+    "build:thunderbird:windows": "bash build/windows/thunderbird-mcp/build-installer.sh",
+    "build:chromium:windows": "bash build/windows/chromium-mcp/build-installer.sh",
+    "build:chromium:extension": "make -C build/linux"
   },
   "engines": {
     "node": ">=18"

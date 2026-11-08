@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Allow tab access?</title>
+    <link rel="stylesheet" href="confirm.css" />
+  </head>
+  <body>
+    <main class="card">
+      <p class="eyebrow">Chat AI Browser Control</p>
+      <h1>Allow access to this tab?</h1>
+      <p id="purpose" class="purpose"></p>
+
+      <dl class="details">
+        <dt>Tab</dt>
+        <dd id="title">(untitled)</dd>
+        <dt>Site</dt>
+        <dd id="origin" class="mono"></dd>
+        <dt>URL</dt>
+        <dd id="url" class="mono"></dd>
+      </dl>
+
+      <p class="warning">
+        Only allow this if you started the request in Chat AI. The assistant can
+        read and interact with this tab while access is granted.
+      </p>
+
+      <div id="error" class="error" hidden></div>
+
+      <div class="actions">
+        <button id="deny" class="secondary" autofocus>Deny</button>
+        <button id="once" class="primary">Allow once</button>
+        <button id="session" class="primary">Allow for session</button>
+      </div>
+      <p class="hint">
+        Session access is kept in memory only and is forgotten when the browser
+        closes or the tab navigates to another site.
+      </p>
+    </main>
+    <script src="confirm.js" type="module"></script>
+  </body>
+</html>

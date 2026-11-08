@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chat AI Browser Control</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Browser Control</h1>
+      <p id="status" class="status">Checking relay…</p>
+      <p id="detail" class="detail"></p>
+
+      <div class="actions">
+        <button id="toggle" type="button">Disconnect</button>
+        <button id="settings" type="button" class="secondary">Settings</button>
+      </div>
+      <button id="revoke" type="button" class="secondary wide">
+        Revoke session grants
+      </button>
+
+      <p class="note">
+        The assistant can only use a tab after you approve it. Session grants are
+        kept until the browser closes.
+      </p>
+    </main>
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>
