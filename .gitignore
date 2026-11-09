@@ -1,5 +1,6 @@
 secrets/*
 !secrets/back.json.example
+!secrets/calendar.json.example
 node_modules/
 *.log
 .DS_Store

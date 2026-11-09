@@ -21,10 +21,12 @@ configuration without copying the whole Chat AI front end.
 | `tools/crm-mcp/` | Local-first CRM MCP server backed by SQLite; native write confirmation and audit log |
 | `tools/browser-mcp/` | Local MCP server for headless Chrome: open and read pages, click, type, scroll, and screenshot |
 | `tools/chromium-mcp/` | Chromium extension + local MCP relay for controlling the user's browser with per-tab consent |
+| `tools/calendar-mcp/` | CalDAV calendar MCP server with native confirmation for meeting changes |
 | `build/windows/local-folder-mcp/` | Standalone Windows executable (Node SEA) and Inno Setup installer |
 | `build/windows/browser-mcp/` | Linux cross-build for the browser MCP Windows executable and NSIS installer |
 | `build/windows/thunderbird-mcp/` | Linux cross-build for the Thunderbird MCP Windows executable, extension XPI, and NSIS installer |
 | `build/windows/chromium-mcp/` | Linux cross-build for the Chromium MCP relay Windows executable and NSIS installer |
+| `build/windows/calendar-mcp/` | Linux cross-build for the CalDAV calendar MCP Windows executable and NSIS installer |
 | `build/linux/chromium-mcp/` | Linux packaging for the Chromium extension (ZIP and optional CRX) |
 | `README-Windows.txt` | Complete Windows build, install, and troubleshooting guide |
 | `assets/eu-ai-icons/` | Official EU “fully AI-generated” badge, black and white variants |
@@ -433,6 +435,28 @@ override the default directory.
 See [tools/crm-mcp/README.md](tools/crm-mcp/README.md) and
 [RUNNING.md](tools/crm-mcp/RUNNING.md).
 
+## Calendar MCP server
+
+`tools/calendar-mcp/` is a local CalDAV MCP server. It lists calendars and
+events, reads details, creates meetings with invited attendees, and accepts or
+declines invitations.
+
+```bash
+cp secrets/calendar.json.example secrets/calendar.json
+# edit the CalDAV URL, username, app password, and email
+npm --prefix tools/calendar-mcp install
+npm run mcp:calendar
+# MCP: http://127.0.0.1:8767/mcp
+```
+
+Every change opens a native confirmation dialog with **Allow once**, **Allow for
+session**, or **Deny**. Invitations are sent by the CalDAV server's scheduling
+support. The config contains credentials and lives under the gitignored
+`secrets/` folder.
+
+See [tools/calendar-mcp/README.md](tools/calendar-mcp/README.md) for setup,
+tools, and security notes.
+
 ## Browser MCP server
 
 `tools/browser-mcp/` gives an assistant a local headless Chrome browser. It
@@ -569,9 +593,12 @@ npm run mcp:browser       # headless browser MCP server over HTTP
 npm run mcp:browser:stdio # headless browser MCP server over stdio
 npm run mcp:chromium      # Chromium browser-control relay over HTTP
 npm run mcp:chromium:stdio # Chromium relay over stdio (extension still uses the WebSocket port)
+npm run mcp:calendar      # CalDAV calendar MCP server over HTTP
+npm run mcp:calendar:stdio # CalDAV calendar MCP server over stdio
 npm run build:browser:windows     # Windows exe + installer from Linux (needs nsis)
 npm run build:thunderbird:windows # Windows exe + installer + extension XPI from Linux
 npm run build:chromium:windows    # Chromium relay exe + installer + extension from Linux
+npm run build:calendar:windows    # CalDAV calendar exe + installer from Linux
 make -C build/windows             # build every Windows package this host supports
 make -C build/linux               # Chromium extension ZIP (make ... crx for CRX)
 ```

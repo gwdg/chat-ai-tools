@@ -83,9 +83,10 @@ The HTTP transport uses stateful MCP sessions (`Mcp-Session-Id`). Bind to
 Browser clients need two things:
 
 - the header `Authorization: Bearer <bearer password>` (or the configured token)
-- a CORS origin that is allowed. Localhost and 127.0.0.1 origins are allowed by
-  default; use `--cors-origin` or `THUNDERBIRD_MCP_CORS_ORIGIN` for another
-  origin. Preflight requests are answered without authentication.
+- a CORS origin that is allowed. Localhost and 127.0.0.1 origins, plus
+  `*.chat-ai.academiccloud.de`, are allowed by default; use `--cors-origin` or
+  `THUNDERBIRD_MCP_CORS_ORIGIN` for another origin. Patterns support `*` and
+  `*.domain` wildcards. Preflight requests are answered without authentication.
 
 For Chat AI, add a remote MCP server:
 
@@ -114,7 +115,7 @@ local HTTP MCP endpoint as mixed content.
 | `--password [password]` | `THUNDERBIRD_MCP_PASSWORD` | HTTP bearer password. Without a value, a native password prompt opens. |
 | `--ask-password` | | Open a native password prompt at startup |
 | `--token <token>` | `THUNDERBIRD_MCP_TOKEN` | HTTP bearer token; defaults to the HTTP bearer password. |
-| `--cors-origin <list>` | `THUNDERBIRD_MCP_CORS_ORIGIN` | Comma-separated allowed browser origins; defaults to localhost/127.0.0.1. |
+| `--cors-origin <list>` | `THUNDERBIRD_MCP_CORS_ORIGIN` | Comma-separated allowed browser origins; supports `*` and `*.domain` wildcards. Defaults to localhost/127.0.0.1 and `*.chat-ai.academiccloud.de`. |
 
 Profile auto-detection looks at:
 

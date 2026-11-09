@@ -35,6 +35,7 @@ chat-ai-tools/
 ├── tools/crm-mcp/             Local-first CRM MCP server backed by SQLite
 ├── tools/browser-mcp/         Headless Chrome MCP server (puppeteer-core)
 ├── tools/chromium-mcp/        Chromium extension + relay for controlling the user's browser
+├── tools/calendar-mcp/        CalDAV calendar MCP server with change confirmation
 ├── assets/eu-ai-icons/        Official EU fully AI-generated badge (black/white)
 ├── scripts/serve.mjs          Static server for local development
 ├── tests/                     node:test suites
@@ -281,6 +282,34 @@ that controls the user's own browser. Its invariants:
 - Tool results return only the report filename, never an absolute or full path.
 - Reports are self-contained: no external assets, scripts, or network requests.
 
+`tools/calendar-mcp/` is a local CalDAV MCP server. Its invariants:
+
+- **Local transports only.** HTTP mode binds to loopback and refuses a
+  non-loopback `HOST`; stdio keeps stdout for JSON-RPC only.
+- **Native confirmation for every change.** `create_event` and
+  `respond_to_event` must call the confirmation dialog first. Allow once,
+  Allow for session, and Deny are the only choices. Never add a silent write
+  path. Session approvals live in memory and disappear on restart.
+- **Credentials stay server-side.** The CalDAV password comes from
+  `secrets/calendar.json` (or `CALENDAR_CONFIG`), is never logged, and is never
+  included in tool results, dialogs, or audits.
+- **HTTPS only except loopback.** Refuse `http` CalDAV URLs outside
+  localhost/127.0.0.1. Never send credentials to another origin; reject event
+  URLs outside the configured origin.
+- **Reads are free, writes are gated.** Listing calendars/events and getting an
+  event are read-only. Do not add delete, arbitrary update, or bulk operations
+  without a separate design and confirmation.
+- **iCalendar and XML are untrusted.** Escape or serialize with the libraries;
+  never inject event text into HTML or logs.
+- **UTC dates.** Store date-times in UTC; date-only events use `VALUE=DATE` with
+  an exclusive end date. Do not add VTIMEZONE handling without tests.
+- The CalDAV server sends invitations; this tool does not send email itself.
+  Document that scheduling/iTIP must be enabled on the server.
+- Tests must use a mock CalDAV server and a fake dialog; they must never contact
+  a real calendar.
+- When changing the server, update `tools/calendar-mcp/README.md` and the root
+  README.
+
 ## Linux packaging
 
 Every Linux-packaged tool has its own subfolder under `build/linux/<tool>/`.
@@ -402,6 +431,26 @@ The Chromium MCP relay has a Linux cross-build under
 - Keep `build/windows/chromium-mcp/installer.nsi` and `installer-readme.txt` in
   sync with the relay options, confirmation model, and extension setup.
 
+The CalDAV calendar MCP server has a Linux cross-build under
+`build/windows/calendar-mcp/`:
+
+- `build-installer.sh` downloads matching Linux and Windows Node.js runtimes,
+  bundles `server.mjs` plus `fast-xml-parser` and `ical.js` with esbuild, creates
+  the SEA blob with the Linux binary, injects it into the Windows `node.exe`
+  with `postject`, and compiles the NSIS installer with `makensis`.
+- The esbuild banner sets `MCP_SEA=1`. Keep the
+  `if (process.env.MCP_SEA === "1") main();` guard at the bottom of
+  `tools/calendar-mcp/server.mjs`.
+- `npm run build:calendar:windows` runs the script. `ZIP_ONLY=1` skips NSIS;
+  `SKIP_TESTS=1` skips the pre-build tests.
+- Outputs are `calendar-mcp.exe`, `calendar-mcp-setup.exe`,
+  `calendar-mcp-windows.zip`, `calendar.json.example`, and `SHA256SUMS.txt` in
+  `build/windows/calendar-mcp/out/`. Do not commit `out/` or `.cache/`.
+- The installer does not create a real `calendar.json`; the user must copy the
+  example and enter the CalDAV app password.
+- Keep `build/windows/calendar-mcp/installer.nsi` and `installer-readme.txt` in
+  sync with the calendar config, tools, and confirmation model.
+
 ## Adding a tool or example
 
 Every new tool or example must be documented. A feature is not complete until:
@@ -462,9 +511,12 @@ npm run mcp:browser       # headless browser MCP server over HTTP (prints endpoi
 npm run mcp:browser:stdio # headless browser MCP server over stdio
 npm run mcp:chromium      # Chromium control relay over HTTP (prints endpoint)
 npm run mcp:chromium:stdio # Chromium control relay over stdio
+npm run mcp:calendar      # CalDAV calendar MCP server over HTTP (prints endpoint)
+npm run mcp:calendar:stdio # CalDAV calendar MCP server over stdio
 npm run build:browser:windows # Windows exe + NSIS installer from Linux
 npm run build:thunderbird:windows # Windows exe + installer + extension XPI from Linux
 npm run build:chromium:windows # Chromium relay exe + installer + extension from Linux
+npm run build:calendar:windows # CalDAV calendar exe + installer from Linux
 make -C build/windows             # build every Windows package this host supports
 make -C build/linux               # Chromium extension ZIP (add crx target for CRX)
 ```
@@ -501,6 +553,15 @@ Environment overrides:
 - `MCP_CHROMIUM_EXTENSION_TOKEN` — token required in the extension hello message
   when set.
 - `MCP_CHROMIUM_COMMAND_TIMEOUT_MS` — browser command timeout (default `180000`).
+- `CALENDAR_MCP_HTTP_PORT` — calendar MCP HTTP port (default `8767`).
+- `CALENDAR_MCP_CORS_ORIGIN` — comma-separated local origins for the calendar
+  MCP HTTP mode; defaults to localhost/127.0.0.1.
+- `CALENDAR_MCP_TOKEN` — Bearer token required on `/mcp` when set (default: no
+  authentication).
+- `CALENDAR_CONFIG` — path to the CalDAV config (default
+  `./secrets/calendar.json`).
+- `CALENDAR_MCP_DIALOG_TIMEOUT_MS` — native confirmation timeout (default
+  `300000`).
 - `CORS_ORIGIN` — comma-separated allowed origins; defaults to localhost and
   127.0.0.1 origins.
 - `CONFIG_LOCATION` — path to the proxy config (default `secrets/back.json`).
@@ -530,6 +591,9 @@ Environment overrides:
       grants.
 - [ ] Chromium WebSocket upgrades require a `chrome-extension://` origin (or the
       configured extension token), and only http(s) tabs can be controlled.
+- [ ] The calendar MCP server requires Allow once / Allow for session / Deny for
+      every meeting creation or invitation response, and never logs CalDAV
+      credentials.
 - [ ] HTTP mode prints the endpoint in the documented form.
 - [ ] The proxy and development server bind to loopback only.
 - [ ] Client `system`/`developer` messages and tool fields are dropped by the

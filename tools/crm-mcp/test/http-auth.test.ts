@@ -121,6 +121,42 @@ test("HTTP transport requires Bearer auth and answers CORS preflight", async (t)
     null,
   );
 
+  for (const origin of [
+    "https://stage.chat-ai.academiccloud.de",
+    "https://chat-ai.academiccloud.de",
+  ]) {
+    const allowedPreflight = await fetch(`http://127.0.0.1:${port}/mcp`, {
+      method: "OPTIONS",
+      headers: {
+        Origin: origin,
+        "Access-Control-Request-Method": "POST",
+      },
+    });
+    assert.equal(allowedPreflight.status, 204);
+    assert.equal(
+      allowedPreflight.headers.get("access-control-allow-origin"),
+      origin,
+    );
+  }
+
+  for (const origin of [
+    "http://stage.chat-ai.academiccloud.de",
+    "https://evilchat-ai.academiccloud.de",
+    "https://chat-ai.academiccloud.de.evil.example",
+  ]) {
+    const blockedWildcard = await fetch(`http://127.0.0.1:${port}/mcp`, {
+      method: "OPTIONS",
+      headers: {
+        Origin: origin,
+        "Access-Control-Request-Method": "POST",
+      },
+    });
+    assert.equal(
+      blockedWildcard.headers.get("access-control-allow-origin"),
+      null,
+    );
+  }
+
   const unauthorized = await rpc(
     port,
     {

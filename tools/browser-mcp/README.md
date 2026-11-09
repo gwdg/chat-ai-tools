@@ -165,7 +165,7 @@ snapshot renumbers the elements on the current page.
 | `MCP_BROWSER_HTTP_PORT` | HTTP mode port (default `3922`) |
 | `HOST` | Loopback bind address: `127.0.0.1`, `localhost`, or `::1` only |
 | `MCP_BROWSER_TOKEN` | Require this Bearer token on `/mcp` (default: no authentication) |
-| `MCP_BROWSER_CORS_ORIGIN` | Comma-separated allowed browser origins; defaults to localhost/127.0.0.1 |
+| `MCP_BROWSER_CORS_ORIGIN` | Comma-separated allowed browser origins; supports `*` and `*.domain` wildcards (default: localhost/127.0.0.1 and `*.chat-ai.academiccloud.de`) |
 | `MCP_BROWSER_SESSION_IDLE_MS` | Idle timeout before a session is closed (default `1800000`, `0` disables expiry) |
 | `MCP_BROWSER_MAX_SESSIONS` | Maximum concurrent sessions before the oldest is evicted (default `20`) |
 | `MCP_BROWSER_TRANSPORT` | Set to `http` to start HTTP mode without `--http` |

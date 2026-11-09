@@ -75,8 +75,9 @@ Tests must not depend on direct mbox parsing or native dialogs; pass a fake
   password prompt. Never log the password.
 - HTTP mode must answer CORS preflight requests before authentication. Allow
   `Content-Type`, `Accept`, `Authorization`, `Mcp-Session-Id`,
-  `Mcp-Protocol-Version`, and `Last-Event-ID`. Default to localhost origins;
-  require an explicit `--cors-origin`/`THUNDERBIRD_MCP_CORS_ORIGIN` for others.
+  `Mcp-Protocol-Version`, and `Last-Event-ID`. Default to localhost origins and
+  `*.chat-ai.academiccloud.de`; `*` and `*.domain` wildcards are supported.
+  Require an explicit `--cors-origin`/`THUNDERBIRD_MCP_CORS_ORIGIN` for others.
 - Mail metadata and mail reads ask the user through a native access dialog:
   one shared metadata approval for `list_accounts`/`list_folders`, and one
   approval per mailbox for `list_emails`, `read_email`, and each mailbox

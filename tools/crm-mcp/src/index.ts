@@ -57,7 +57,8 @@ Options:
                         Without a value, a native password prompt opens.
   --ask-password        Open a native password prompt at startup
   --token <token>       HTTP Bearer token (default: HTTP bearer password, or CRM_MCP_TOKEN)
-  --cors-origin <list>  Comma-separated allowed browser origins (default: localhost/127.0.0.1)
+  --cors-origin <list>  Comma-separated allowed browser origins; supports * and *.domain
+                        wildcards (default: localhost/127.0.0.1 and *.chat-ai.academiccloud.de)
   -h, --help            Show this help
   -v, --version         Show the version
 
@@ -245,13 +246,32 @@ function resolveCorsOrigins(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
+const DEFAULT_CORS_ORIGINS = ["*.chat-ai.academiccloud.de"];
+
+function originMatchesPattern(origin: string, pattern: string): boolean {
+  if (pattern === "*" || pattern === origin) return true;
+  if (!pattern.startsWith("*.")) return false;
+  try {
+    const { protocol, hostname } = new URL(origin);
+    if (protocol !== "https:") return false;
+    const suffix = pattern.slice(2).toLowerCase();
+    const host = hostname.toLowerCase();
+    return host === suffix || host.endsWith(`.${suffix}`);
+  } catch {
+    return false;
+  }
+}
+
 function isAllowedOrigin(
   origin: string | undefined,
   configured: string[],
 ): boolean {
   if (!origin) return false;
-  if (configured.includes("*")) return true;
-  if (configured.length) return configured.includes(origin);
+  const patterns = configured.length ? configured : DEFAULT_CORS_ORIGINS;
+  if (patterns.some((pattern) => originMatchesPattern(origin, pattern))) {
+    return true;
+  }
+  if (configured.length) return false;
   try {
     const { hostname } = new URL(origin);
     return ["127.0.0.1", "localhost", "[::1]"].includes(hostname);
@@ -482,7 +502,9 @@ async function runHttp(
   );
   console.error(
     `[crm-mcp] CORS origins: ${
-      corsOrigins.length ? corsOrigins.join(", ") : "localhost/127.0.0.1 only"
+      corsOrigins.length
+        ? corsOrigins.join(", ")
+        : "localhost/127.0.0.1 and *.chat-ai.academiccloud.de"
     }`,
   );
 

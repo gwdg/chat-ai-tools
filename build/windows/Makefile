@@ -5,6 +5,7 @@ ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
 BROWSER_SCRIPT := $(ROOT)/build/windows/browser-mcp/build-installer.sh
 THUNDERBIRD_SCRIPT := $(ROOT)/build/windows/thunderbird-mcp/build-installer.sh
 CHROMIUM_SCRIPT := $(ROOT)/build/windows/chromium-mcp/build-installer.sh
+CALENDAR_SCRIPT := $(ROOT)/build/windows/calendar-mcp/build-installer.sh
 
 ZIP_ONLY ?= 0
 SKIP_TESTS ?= 0
@@ -14,7 +15,7 @@ WINDOWS_BUILD_CACHE ?= $(ROOT)/build/windows/.cache
 
 export ZIP_ONLY SKIP_TESTS NODE_VERSION WINDOWS_BUILD_CACHE
 
-.PHONY: help all browser thunderbird chromium local-folder clean
+.PHONY: help all browser thunderbird chromium calendar local-folder clean
 
 help:
 	@echo "Usage: make -C build/windows <target> [ZIP_ONLY=1] [SKIP_TESTS=1] [NODE_VERSION=22.22.1]"
@@ -23,6 +24,7 @@ help:
 	@echo "  browser        Build browser-mcp exe, NSIS installer, and portable ZIP"
 	@echo "  thunderbird    Build thunderbird-mcp exe, NSIS installer, extension XPI, and ZIP"
 	@echo "  chromium       Build chromium-mcp relay exe, NSIS installer, extension, and ZIP"
+	@echo "  calendar       Build calendar-mcp exe, NSIS installer, and ZIP"
 	@echo "  local-folder   Build local-folder-mcp on Windows (skipped elsewhere)"
 	@echo "  clean          Remove all build outputs and downloaded runtimes"
 	@echo
@@ -30,7 +32,7 @@ help:
 	@echo "local-folder copies the running node.exe and must run on Windows with Inno Setup."
 	@echo "Set SKIP_LOCAL_FOLDER=1 to omit it even on Windows."
 
-all: browser thunderbird chromium local-folder
+all: browser thunderbird chromium calendar local-folder
 
 browser:
 	@echo "==> browser-mcp"
@@ -43,6 +45,10 @@ thunderbird:
 chromium:
 	@echo "==> chromium-mcp"
 	@bash "$(CHROMIUM_SCRIPT)"
+
+calendar:
+	@echo "==> calendar-mcp"
+	@bash "$(CALENDAR_SCRIPT)"
 
 local-folder:
 	@if [ "$(SKIP_LOCAL_FOLDER)" = "1" ]; then \
@@ -79,5 +85,7 @@ clean:
 		"$(ROOT)/build/windows/thunderbird-mcp/.cache" \
 		"$(ROOT)/build/windows/chromium-mcp/out" \
 		"$(ROOT)/build/windows/chromium-mcp/.cache" \
+		"$(ROOT)/build/windows/calendar-mcp/out" \
+		"$(ROOT)/build/windows/calendar-mcp/.cache" \
 		"$(ROOT)/build/windows/.cache"
 	@echo "Removed Windows build outputs."

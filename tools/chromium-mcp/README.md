@@ -163,7 +163,7 @@ Security Policy. Screenshots capture the visible viewport, not the full page.
 | `MCP_CHROMIUM_HTTP_PORT` | HTTP/WebSocket port (default `8766`) |
 | `MCP_CHROMIUM_EXTENSION_PORT` | WebSocket-only port in stdio mode (default `8766`) |
 | `HOST` | Loopback bind address: `127.0.0.1`, `localhost`, or `::1` only |
-| `MCP_CHROMIUM_CORS_ORIGIN` | Allowed browser origins; defaults to localhost/127.0.0.1 |
+| `MCP_CHROMIUM_CORS_ORIGIN` | Comma-separated allowed browser origins; supports `*` and `*.domain` wildcards (default: localhost/127.0.0.1 and `*.chat-ai.academiccloud.de`) |
 | `MCP_CHROMIUM_TOKEN` | Require this Bearer token on `/mcp` (default: no authentication) |
 | `MCP_CHROMIUM_EXTENSION_TOKEN` | Require this token in the extension hello message |
 | `MCP_CHROMIUM_COMMAND_TIMEOUT_MS` | Browser command timeout (default `180000`) |

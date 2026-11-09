@@ -68,7 +68,8 @@ real native dialog in CI.
 HTTP mode requires `Authorization: Bearer <token>` on every MCP request. The
 token defaults to the HTTP bearer password, `Zinnober` unless changed. Stdio
 mode has no transport authentication. CORS preflight is answered before auth;
-localhost origins are allowed by default.
+localhost origins and `*.chat-ai.academiccloud.de` are allowed by default, and
+configured origins support `*` and `*.domain` wildcards.
 
 ## Tests
 

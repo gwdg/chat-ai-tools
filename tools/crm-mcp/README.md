@@ -66,9 +66,10 @@ node dist/index.js --http --port 8766 --db ~/crm/crm.db
 - The token defaults to the HTTP bearer password, `Zinnober` unless changed.
   Override the password with `--password`, `--ask-password`, or
   `CRM_MCP_PASSWORD`; override the token with `--token` or `CRM_MCP_TOKEN`.
-- Localhost/127.0.0.1 browser origins are allowed by default. Use
-  `--cors-origin` or `CRM_MCP_CORS_ORIGIN` for other origins. Preflight is
-  answered before auth.
+- Localhost/127.0.0.1 browser origins and `*.chat-ai.academiccloud.de` are
+  allowed by default. Use `--cors-origin` or `CRM_MCP_CORS_ORIGIN` for others.
+  Origins support `*` and `*.domain` wildcards. Preflight is answered before
+  auth.
 - Chat AI config:
 
 ```json
@@ -95,7 +96,7 @@ serve Chat AI over HTTP on localhost/127.0.0.1 when testing.
 | `--password [password]` | `CRM_MCP_PASSWORD` | HTTP bearer password. Without a value, opens a native password prompt. |
 | `--ask-password` | | Open a native password prompt at startup. |
 | `--token <token>` | `CRM_MCP_TOKEN` | HTTP bearer token; defaults to the bearer password. |
-| `--cors-origin <list>` | `CRM_MCP_CORS_ORIGIN` | Comma-separated allowed browser origins. |
+| `--cors-origin <list>` | `CRM_MCP_CORS_ORIGIN` | Comma-separated allowed browser origins; supports `*` and `*.domain` wildcards. |
 | `--debug` | `CRM_MCP_DEBUG=1` | Log tool calls and errors to stderr. |
 | | `CRM_REPORT_DIR` | Default directory for `generate_timeline_html` reports when `output_path` is omitted; defaults to `./reports`. `make start OUTPUT=...` sets it. |
 

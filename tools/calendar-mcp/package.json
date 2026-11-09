@@ -1,0 +1,20 @@
+{
+  "name": "calendar-mcp",
+  "version": "0.1.0",
+  "description": "Local MCP server for CalDAV calendars with native confirmation for changes",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs --http",
+    "stdio": "node server.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "keywords": ["mcp", "calendar", "caldav", "icalendar"],
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "fast-xml-parser": "^5.12.0",
+    "ical.js": "^2.2.1"
+  },
+  "files": ["server.mjs", "caldav.mjs", "config.mjs", "dialog.mjs", "approvals.mjs", "README.md"]
+}

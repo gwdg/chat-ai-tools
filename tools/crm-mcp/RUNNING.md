@@ -44,8 +44,9 @@ make stop
 - The token defaults to the HTTP bearer password, `Zinnober` unless changed with
   `--password`, `--ask-password`, or `CRM_MCP_PASSWORD`.
 - Override the token with `--token` or `CRM_MCP_TOKEN`.
-- Localhost browser origins are allowed by default. Use `--cors-origin` or
-  `CRM_MCP_CORS_ORIGIN` for another origin.
+- Localhost browser origins and `*.chat-ai.academiccloud.de` are allowed by
+  default. Use `--cors-origin` or `CRM_MCP_CORS_ORIGIN` for another origin;
+  patterns support `*` and `*.domain` wildcards.
 
 Chat AI configuration:
 

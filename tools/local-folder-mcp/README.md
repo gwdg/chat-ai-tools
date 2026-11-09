@@ -56,8 +56,9 @@ Streamable HTTP:
 - `GET /health` — `{ "ok": true }`
 
 The port can be changed with `MCP_FOLDER_HTTP_PORT`. CORS accepts
-localhost/127.0.0.1 origins by default; set `MCP_FOLDER_CORS_ORIGIN` to a
-comma-separated list if the Chat AI page uses another local origin.
+localhost/127.0.0.1 origins and `*.chat-ai.academiccloud.de` by default; set
+`MCP_FOLDER_CORS_ORIGIN` to a comma-separated list to override that. Patterns
+support `*` and `*.domain` wildcards.
 
 ## stdio client configuration
 
@@ -141,7 +142,7 @@ It waits for JSON-RPC messages on stdin.
 | `MCP_FOLDER_MAX_ENTRIES` | `1000` | Maximum entries returned by `list_folder` |
 | `MCP_FOLDER_MAX_READ_BYTES` | `1000000` | Maximum bytes read from a file before truncation |
 | `MCP_FOLDER_HTTP_PORT` | `3921` | HTTP mode port on `127.0.0.1` |
-| `MCP_FOLDER_CORS_ORIGIN` | localhost/127.0.0.1 origins | Comma-separated allowed origins for HTTP mode |
+| `MCP_FOLDER_CORS_ORIGIN` | localhost/127.0.0.1 and `*.chat-ai.academiccloud.de` | Comma-separated allowed origins for HTTP mode; supports `*` and `*.domain` wildcards |
 
 ## Security notes
 

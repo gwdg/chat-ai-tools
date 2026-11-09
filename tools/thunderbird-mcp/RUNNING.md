@@ -49,8 +49,9 @@ node dist/index.js --http --port 8765
 - Transport auth is required: send `Authorization: Bearer <token>` on every
   request. The token defaults to the HTTP bearer password (`Zinnober` unless
   changed); override it with `--token` or `THUNDERBIRD_MCP_TOKEN`.
-- Browser clients from localhost/127.0.0.1 are allowed by default. For another
-  origin, set `--cors-origin` or `THUNDERBIRD_MCP_CORS_ORIGIN`.
+- Browser clients from localhost/127.0.0.1 and `*.chat-ai.academiccloud.de` are
+  allowed by default. For another origin, set `--cors-origin` or
+  `THUNDERBIRD_MCP_CORS_ORIGIN`; patterns support `*` and `*.domain` wildcards.
 - Chat AI needs the Authorization header above. An HTTPS-hosted Chat AI page may
   block the local HTTP MCP endpoint as mixed content.
 

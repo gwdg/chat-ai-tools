@@ -108,10 +108,29 @@ function resolveCorsOrigins(value) {
     .filter(Boolean);
 }
 
+const DEFAULT_CORS_ORIGINS = ["*.chat-ai.academiccloud.de"];
+
+function originMatchesPattern(origin, pattern) {
+  if (pattern === "*" || pattern === origin) return true;
+  if (!pattern.startsWith("*.")) return false;
+  try {
+    const { protocol, hostname } = new URL(origin);
+    if (protocol !== "https:") return false;
+    const suffix = pattern.slice(2).toLowerCase();
+    const host = hostname.toLowerCase();
+    return host === suffix || host.endsWith(`.${suffix}`);
+  } catch {
+    return false;
+  }
+}
+
 function isOriginAllowed(origin, corsOrigins) {
   if (!origin) return false;
-  if (corsOrigins.includes("*")) return true;
-  if (corsOrigins.length) return corsOrigins.includes(origin);
+  const patterns = corsOrigins.length ? corsOrigins : DEFAULT_CORS_ORIGINS;
+  if (patterns.some((pattern) => originMatchesPattern(origin, pattern))) {
+    return true;
+  }
+  if (corsOrigins.length) return false;
 
   try {
     const { hostname } = new URL(origin);
@@ -507,7 +526,7 @@ function mainHttp() {
     console.log(
       corsOrigins.length
         ? `CORS origins: ${corsOrigins.join(", ")}`
-        : "CORS origins: localhost/127.0.0.1 only",
+        : "CORS origins: localhost/127.0.0.1 and *.chat-ai.academiccloud.de",
     );
   });
 

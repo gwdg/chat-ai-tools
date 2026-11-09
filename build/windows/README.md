@@ -8,6 +8,7 @@ Each Windows-packaged tool lives in its own subfolder:
 | `browser-mcp/` | Headless browser MCP server | Linux/macOS (NSIS) |
 | `thunderbird-mcp/` | Thunderbird MCP server + extension | Linux/macOS (NSIS) |
 | `chromium-mcp/` | Chromium browser-control relay + extension | Linux/macOS (NSIS) |
+| `calendar-mcp/` | CalDAV calendar MCP server | Linux/macOS (NSIS) |
 
 The `Makefile` in this folder builds everything the current host supports.
 
@@ -17,7 +18,7 @@ The `Makefile` in this folder builds everything the current host supports.
 make -C build/windows
 ```
 
-This runs `browser`, `thunderbird`, `chromium`, and `local-folder`. On Linux/macOS the
+This runs `browser`, `thunderbird`, `chromium`, `calendar`, and `local-folder`. On Linux/macOS the
 `local-folder` target is skipped with an explanation, because that build copies
 the running `node.exe` and must run on Windows.
 
@@ -27,6 +28,7 @@ Individual targets:
 make -C build/windows browser
 make -C build/windows thunderbird
 make -C build/windows chromium
+make -C build/windows calendar
 make -C build/windows local-folder
 make -C build/windows clean
 ```
@@ -48,7 +50,7 @@ make -C build/windows clean
 Without NSIS, build only the portable packages:
 
 ```bash
-ZIP_ONLY=1 make -C build/windows browser thunderbird chromium
+ZIP_ONLY=1 make -C build/windows browser thunderbird chromium calendar
 ```
 
 ## Options
@@ -70,6 +72,7 @@ build/windows/local-folder-mcp/out/
 build/windows/browser-mcp/out/
 build/windows/thunderbird-mcp/out/
 build/windows/chromium-mcp/out/
+build/windows/calendar-mcp/out/
 ```
 
 All outputs are ignored by git. Executables and installers are unsigned by
